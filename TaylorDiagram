@@ -1,0 +1,103 @@
+from matplotlib.transforms import Affine2D
+import mpl_toolkits.axisartist.floating_axes as floating_axes
+import numpy as np
+import mpl_toolkits.axisartist.angle_helper as angle_helper
+from matplotlib.projections import PolarAxes
+from mpl_toolkits.axisartist.grid_finder import (FixedLocator, MaxNLocator,
+                                                 DictFormatter)
+import matplotlib.pyplot as plt
+import math, re
+
+def Taylor_Diagram(fig, rect, num_refstd, num_mag=1.5):
+    """
+    Adopting from the examples on Matplotlib.org
+    """
+    tr = PolarAxes.PolarTransform()
+
+    pi = np.pi
+    angle_ticks = [(0.01*.5*pi, r"0.99"),
+                   (0.1*.5*pi, r"0.9"),
+                   (0.2*.5*pi, r"0.8"),
+                   (0.3*.5*pi, r"0.7"),
+                   (0.4*.5*pi, r"0.6"),
+                   (0.5*.5*pi, r"0.5"),
+                   (0.6*.5*pi, r"0.4"),
+                   (0.7*.5*pi, r"0.3"),
+                   (0.8*.5*pi, r"0.2"),
+                   (0.9*.5*pi, r"0.1"),
+                   (1.0*.5*pi, r"0.0")]
+    grid_locator1 = FixedLocator([v for v, s in angle_ticks])
+    tick_formatter1 = DictFormatter(dict(angle_ticks))
+
+    grid_locator2 = MaxNLocator(2)
+    num_max = num_refstd * num_mag
+    grid_helper = floating_axes.GridHelperCurveLinear(
+        tr, extremes=(0.5*pi,0, num_max, 0),
+        grid_locator1=grid_locator1,
+        #grid_locator2=grid_locator2,
+        tick_formatter1=tick_formatter1,
+        tick_formatter2=None)
+
+    ax1 = floating_axes.FloatingSubplot(fig, rect, grid_helper=grid_helper)
+    fig.add_subplot(ax1)
+    ax1.axis["bottom"].set_axis_direction("bottom")  # "Angle axis"
+    #ax1.axis["top"].toggle(ticklabels=True, label=True)
+    ax1.axis["bottom"].major_ticklabels.set_axis_direction("top")
+    ax1.axis["bottom"].label.set_axis_direction("top")
+    ax1.axis["bottom"].label.set_text("Correlation")
+    ax1.axis["left"].set_axis_direction("top") # "X axis"
+    ax1.axis["left"].label.set_text("Standard deviation")
+    ax1.axis["right"].set_axis_direction("bottom")   # "Y axis"
+    ax1.axis["right"].toggle(ticklabels=True)
+    ax1.axis["right"].major_ticklabels.set_axis_direction("bottom")
+    ax1.axis["right"].label.set_text("Standard deviation")
+
+    aux_ax = ax1.get_aux_axes(tr)
+    ax1.grid()
+    aux_ax.patch = ax1.patch
+    ax1.patch.zorder = 0.9
+
+    return ax1, aux_ax
+
+    def add_sample(ax, arr_Cor=[], arr_Std=[], color='r', dot_fmt='o' ):
+  lenarr1 = len(arr_Cor)
+  lenarr2 = len(arr_Std)
+  if lenarr1 == lenarr2:
+    arr_radius = [0 for n in range(lenarr1)]
+    arr_theta  = [0 for n in range(lenarr1)]
+    for n in range(lenarr1):
+      arr_theta [n] = (1.0-arr_Cor[n]) * 0.5 * math.pi
+
+    ax.scatter(arr_theta, arr_Std, c=color)
+    return True
+  else:
+    print("!! length of arr_Cor is not equal to arr_Std")
+
+def add_cntour(ax, num_refstd, num_intvl=0.5, num_cnts=8, alpha=0.5, color='#b4b4b4'):
+  arr_psi = np.arange(0, math.pi, 0.05)
+  arr_r   = [[] for n in range(num_cnts)]
+  arr_theta   = [[] for n in range(num_cnts)]
+  for n in range(num_cnts):
+    for psi in arr_psi:
+      r     = num_intvl * (n+1)
+      R     = (num_refstd**2 - 2 * num_refstd * r * math.cos( psi) + r **2) ** 0.5
+      if R <=0:
+        theta = 0
+      else:
+        theta =  math.asin( r * math.sin(psi) / R )
+      arr_r[n]    .append( R     )
+      arr_theta[n].append( theta )
+    ax.plot(arr_theta[n], arr_r[n], c=color, ls='--', alpha=alpha)
+  return True
+
+# Please consider this is an exmaple
+fig = plt.figure(1, figsize=(8, 4))
+fig.subplots_adjust(wspace=0.3, left=0.05, right=0.95)
+refstd = 3.0
+r = 0.5
+ax2,aux_ax2 = Taylor_Diagram( fig, 111, refstd )
+
+add_sample(aux_ax2, arr_Cor=[0.5, 0.7, 0.99] ,arr_Std=[2.0, 2.3, 1.5]   )
+add_cntour(aux_ax2, refstd)
+
+plt.show()
