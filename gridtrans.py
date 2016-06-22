@@ -275,7 +275,7 @@ def writexyz(write_file_name,input_arr,ncols,nrows,xllco,yllco,cellsize,nodata_v
 # -----
 # Write .pfb
 # -----
-def writepfb(write_file_name,input_arr,nx,ny,nz,dx,dy,dz,x,y,z,ns,nodata_value):
+def writepfb(write_file_name,input_arr,nx,ny,nz,dx=0,dy=0,dz=0,x=0,y=0,z=0,ns=1,nodata_value=-999.999):
         wtf=open(write_file_name,"w")
 
         wtf.write(struct.pack('>3d',x,y,z))
@@ -294,6 +294,7 @@ def writepfb(write_file_name,input_arr,nx,ny,nz,dx,dy,dz,x,y,z,ns,nodata_value):
                                 for k in range(ix,ix+nnx):
                                         wtf.write(struct.pack('>d',input_arr[i][j][k]))
         wtf.close()
+
 
 # -----
 # Write .sa
