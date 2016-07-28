@@ -144,7 +144,10 @@ def readascgrid(sourcefile):
 
 	result_arr=[]
 	for j in range(0,nrows):
-		valuet=int(re.split('\s',opf.readline().strip()))
+		valuet=[]
+		arr_valuet=re.split('\s',opf.readline().strip())
+		for i in range(0,ncols):
+			valuet.append(float(arr_valuet[i]))	
 		result_arr.append(valuet)
 
         print("Completed reading ascii-grid format from {0}".format(sourcefile))
