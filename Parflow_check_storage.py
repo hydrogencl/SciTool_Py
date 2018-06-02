@@ -113,7 +113,7 @@ def chk_delta_store(file_end_press,file_end_satur, file_start_press, file_start_
   start_total_store,start_t_poro_store,start_t_surf_store,start_t_compr_store = storage_cal(start_value_p[0],start_value_s[0],Porosity_Field[0],Domain_d,specific_store[0],Thickness)
   stop_total_store, stop_t_poro_store, stop_t_surf_store, stop_t_compr_store  = storage_cal(stop_value_p[0],stop_value_s[0],Porosity_Field[0],Domain_d,specific_store[0],Thickness)
   delta_total =  stop_total_store - start_total_store
-  relative_diff = delta_total / ((start_total_store+stop_total_store) / 0.5)
+  relative_diff = delta_total / (start_total_store+stop_total_store) / 0.5
   return delta_total,relative_diff
 
 def cal_in_fld(fld,job_name):
