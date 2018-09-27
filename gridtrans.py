@@ -79,6 +79,51 @@ def checkformat(sourcefile):
 # Read .pfb
 # -----
 
+# -----
+# Read .csv 
+# -----
+
+def readcsv(sourcefile, str_null="noData", num_null=-999.999):
+  opf    = tryopen(sourcefile,'r')
+  opfchk = tryopen(sourcefile,'r')
+  print("reading source file {0:s}".format(sourcefile))
+  chk_lines = opfchk.readlines()
+  num_totallines = len(chk_lines)
+  ncols = 0
+  num_notnum = 0
+  for n in range(num_totallines):
+    line_in = chk_lines[n]
+    #print line_in
+    c_first = re.findall(".",line_in.strip())
+    if c_first[0] == "#":
+      num_notnum += 1
+    else:
+      ncols = len( re.split(",",line_in.strip()) )
+      break
+  if ncols == 0:
+    print("something wrong with the input file! (all comments?)")
+  else:
+    del opfchk
+    nrows=num_totallines - num_notnum
+    result_arr=[[num_null for j in range(nrows)] for i in range(ncols)]
+    num_pass = 0
+    for j in range(0,num_totallines):
+      # chk if comment
+      line_in = opf.readline()
+      c_first = re.findall(".",line_in.strip())[0]
+      if c_first == "#":
+        pass
+        num_pass += 1
+      else:
+        arr_in = re.split(",",line_in.strip())
+        for i in range(ncols):
+          chk_val = arr_in[i]
+          if chk_val == str_null: 
+            result_arr[i][j-num_pass] = num_null
+            print j,i,chk_val
+          else:
+            result_arr[i][j-num_pass] = float(chk_val)
+    return result_arr
 
 def readpfb(sourcefile):
   opf = tryopen(sourcefile,'rb')
