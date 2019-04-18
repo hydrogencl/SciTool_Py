@@ -113,7 +113,7 @@ def readcsv(sourcefile, str_null="noData", num_null=-999.999):
             line_in = opf.readline()
             c_first = re.findall(".",line_in.strip())[0]
             if c_first == "#":
-               result_arr_text.append(line_in)
+                result_arr_text.append(line_in)
                 num_pass += 1
             else:
                 arr_in = re.split(",",line_in.strip())
@@ -159,7 +159,7 @@ def readpfb(sourcefile):
 def readsa(sourcefile):
     print("reading source file {0:s}".format(sourcefile))
     result_arr=[]
-        opf = tryopen(sourcefile,'r')
+    opf = tryopen(sourcefile,'r')
     headt=re.split('\s',opf.readline().strip())
     head=stripblnk(headt,'int')
     nx=int(head[0])
@@ -168,7 +168,7 @@ def readsa(sourcefile):
     for j in range(0,ny):
         tmp=[]
         for i in range(0,nx):
-                ans=re.split('\s',opf.readline().strip())
+            ans=re.split('\s',opf.readline().strip())
             tmp.append(float(ans[0]))
             result_arr.append(tmp)
         print("Completed reading sa format from {0}".format(sourcefile))
@@ -273,7 +273,7 @@ def read1col(sourcefile,nx,ny,nz,*skiplines):
     for j in range(0,ny):
         tmp=[]
         for i in range(0,nx):
-                ans=re.split('\s',opf.readline().strip())
+            ans=re.split('\s',opf.readline().strip())
             tmp.append(float(ans[0]))
             result_arr.append(tmp)
         print("Completed reading sa format from {0}".format(sourcefile))
