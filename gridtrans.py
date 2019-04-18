@@ -126,23 +126,26 @@ def readcsv(sourcefile, str_null="noData", num_null=-999.999):
                         result_arr[i][j-num_pass] = float(chk_val)
     return result_arr,result_arr_text
 
-def readpfb(sourcefile):
+def readpfb(sourcefile, endian="b"):
+    if endian=="b":
+        sym_end=">"
+    elif endian=="l":
+        sym_end="<"
     opf = tryopen(sourcefile,'rb')
     print("reading source file {0:s}".format(sourcefile))
-    
-    t1=struct.unpack('>ddd',opf.read(24))
-    tn=struct.unpack('>iii',opf.read(12))
-    td=struct.unpack('>ddd',opf.read(24))
-    tns=struct.unpack('>i',opf.read(4))
+    t1=struct.unpack('{0:s}ddd'.format(sym_end),opf.read(24))
+    tn=struct.unpack('{0:s}iii'.format(sym_end),opf.read(12))
+    td=struct.unpack('{0:s}ddd'.format(sym_end),opf.read(24))
+    tns=struct.unpack('{0:s}i'.format(sym_end),opf.read(4))
     x1,y1,z1=t1
     nx,ny,nz=tn
     dx,dy,dz=td
     ns=tns[0]
     result_arr=list([[[0.0 for i in range(nx)] for j in range(ny)] for k in range(nz)])
     for isub in range(0,ns):
-        ix,iy,iz,nnx,nny,nnz,rx,ry,rz=struct.unpack('>9i',opf.read(36))
+        ix,iy,iz,nnx,nny,nnz,rx,ry,rz=struct.unpack('{0:s}9i'.format(sym_end),opf.read(36))
         tmp_total = nnx * nny * nnz
-        tvalue = struct.unpack('>{0:d}d'.format(tmp_total), opf.read(8*tmp_total))
+        tvalue = struct.unpack('{1:s}{0:d}d'.format(tmp_total,sym_end), opf.read(8*tmp_total))
         for k in range(nnz):
             for j in range(nny):
                 for i in range(nnx):
@@ -323,25 +326,29 @@ def writexyz(write_file_name,input_arr,ncols,nrows,xllco,yllco,cellsize,nodata_v
 # -----
 # Write .pfb
 # -----
-def writepfb(write_file_name,input_arr,nx,ny,nz,dx=0,dy=0,dz=0,x=0,y=0,z=0,ns=1,nodata_value=-999.999):
+def writepfb(write_file_name,input_arr,nx,ny,nz,dx=0,dy=0,dz=0,x=0,y=0,z=0,ns=1,nodata_value=-999.999, endian="b"):
+    # Can choose for big endian type or little endian type
+    if endian=="b":
+        sym_end=">"
+    elif endian=="l":
+        sym_end="<"
     wtf=open(write_file_name,"w")
-    wtf.write(struct.pack('>3d',x,y,z))
-    wtf.write(struct.pack('>3i',nx,ny,nz))
-    wtf.write(struct.pack('>3d',dx,dy,dz))
-    wtf.write(struct.pack('>1i',ns))
+    wtf.write(struct.pack('{0:s}3d'.format(sym_end),x,y,z))
+    wtf.write(struct.pack('{0:s}3i'.format(sym_end),nx,ny,nz))
+    wtf.write(struct.pack('{0:s}3d'.format(sym_end),dx,dy,dz))
+    wtf.write(struct.pack('{0:s}1i'.format(sym_end),ns))
 
     for isub in range(0,ns):
         iz,iy,ix=int(z),int(y),int(x)
         nnz,nny,nnx=int(nz),int(ny),int(nx)
-        wtf.write(struct.pack('>3i',0,0,0))
-        wtf.write(struct.pack('>3i',nx,ny,nz))
-        wtf.write(struct.pack('>3i',dx,dy,dz))
+        wtf.write(struct.pack('{0:s}3i'.format(sym_end),0,0,0))
+        wtf.write(struct.pack('{0:s}3i'.format(sym_end),nx,ny,nz))
+        wtf.write(struct.pack('{0:s}3i'.format(sym_end),dx,dy,dz))
         for i in range(iz,iz+nnz):
             for j in range(iy,iy+nny):
                 for k in range(ix,ix+nnx):
-                    wtf.write(struct.pack('>d',input_arr[i][j][k]))
+                    wtf.write(struct.pack('{0:s}d'.format(sym_end),input_arr[i][j][k]))
     wtf.close()
-
 
 # -----
 # Write .sa
