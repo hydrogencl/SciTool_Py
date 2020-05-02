@@ -11,7 +11,7 @@ class BIB_CORRECTING_TOOL:
         ARR_ALL_IN_LINE = FILE_BIB_IN.readlines()
         
     def REMOVING_ROUND_BRACKET(self):
-        for line in ARR_ALL_IN_LINE:    
+        for line in self.ARR_ALL_IN_LINE:    
             a = re.match("@",line)
             if a == None:
                 if line[0] != "}":
@@ -25,4 +25,4 @@ class BIB_CORRECTING_TOOL:
                             line = line.replace("\n",'"\n')
                     line = line.replace("\\textbackslash", "\\{textbackslash}")
 
-            FILE_BIB_OUT.write("{0:s}".format( line ))
+            self.FILE_BIB_OUT.write("{0:s}".format( line ))
