@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import re
 class BIB_CORRECTING_TOOL:
-    DIR_IN   = "./"
+    DIR_IN   = "."
     FILE_IN  = "input.bib"
     FILE_OUT = "output.bib"
 
@@ -25,13 +25,14 @@ class BIB_CORRECTING_TOOL:
                         else:
                             line = line.replace("\n",'"\n')
                     line = line.replace("\\textbackslash", "\\{textbackslash}")
-         ARR_OUT.append(line)
+        ARR_OUT.append(line)
     def WRITEOUT_BIB(self):
         for line in self.ARR_OUT:
             self.FILE_BIB_OUT.write("{0:s}".format( line ))
 if __name__ == "__main__":
     print("PLEASE state at least the input .bib file name:")
-    STR_FILE_IN = input("filename:")
+    STR_FILE_IN = raw_input("filename:")
+    print(STR_FILE_IN)
     BCT = BIB_CORRECTING_TOOL(STR_FILE_IN)
     BCT.REMOVING_ROUND_BRACKET()
     BCT.WRITEOUT_BIB()
