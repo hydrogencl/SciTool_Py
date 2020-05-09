@@ -21,3 +21,10 @@ This is used to create and read the output/input files for these format:
 - `.xyz`
 
 With `matplotlib` user can use it to quickly plot the array files. 
+
+## Bib_Corrected
+
+A small tool to fix the .bib file, to remove all the round bracket that can not be read by `Gummi`. 
+Before running the bibliothek function of Gummi, run this script to let `Gummi` read the .bib file. 
+
+
