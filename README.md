@@ -3,7 +3,14 @@ SciTool_Py
 
 All the files are protect by LGPL. Use it, distribute it, and NEVER copyright them. 
 
-# Scientific Tool Assemble.# Scientific Tool Assemble.
+# Scientific Tool Assemble
+
+## SCI_TOOL
+
+This will be the main contribution to the scientific programming tools, including:
+
+### progress bar ###
+Based on the work from stackflow, the progress bar can be used in `Jupyter` and `Terminal` and Python IDE. 
 
 ## Taylor's Diagram - YS
 
@@ -21,3 +28,10 @@ This is used to create and read the output/input files for these format:
 - `.xyz`
 
 With `matplotlib` user can use it to quickly plot the array files. 
+
+## Bib_Corrected
+
+A small tool to fix the .bib file, to remove all the round bracket that can not be read by `Gummi`. 
+Before running the bibliothek function of Gummi, run this script to let `Gummi` read the .bib file. 
+
+
