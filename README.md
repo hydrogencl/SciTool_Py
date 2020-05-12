@@ -3,7 +3,14 @@ SciTool_Py
 
 All the files are protect by LGPL. Use it, distribute it, and NEVER copyright them. 
 
-# Scientific Tool Assemble.# Scientific Tool Assemble.
+# Scientific Tool Assemble
+
+## SCI_TOOL
+
+This will be the main contribution to the scientific programming tools, including:
+
+### progress bar ###
+Based on the work from stackflow, the progress bar can be used in `Jupyter` and `Terminal` and Python IDE. 
 
 ## Taylor's Diagram - YS
 
