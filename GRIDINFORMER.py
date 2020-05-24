@@ -161,7 +161,7 @@ class GRIDINFORMATER:
                         self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
                 if IF_PB: TOOLS.progress_bar(TOOLS.loop_progress_cal([OBJ_G["INDEX"]], [NUM_OBJ_G_LEN]), STR_DES="CREATING REFERENCE MAP")
                 
-    def export_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4" ):
+    def export_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4", IF_PB=False ):
         TIME_NOW = time.gmtime()
         self.STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday) 
         self.STR_TIME_NOW = "{0:04d}:{1:02d}:{2:02d}".format(TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec)
@@ -187,7 +187,8 @@ class GRIDINFORMATER:
             INDEX_REF_I    = NCDF4_DATA.createVariable("INDEX_REF_I",    "i4", ("Y", "X"))
             CENTER_REF_LON = NCDF4_DATA.createVariable("CENTER_REF_LON", "f8", ("Y", "X"))
             CENTER_REF_LAT = NCDF4_DATA.createVariable("CENTER_REF_LAT", "f8", ("Y", "X"))
-            
+            NUM_TOTAL_OBJ = len(self.ARR_REFERENCE_MAP)
+            NUM_MAX_I     = self.NUM_ARR_NX
             for OBJ in self.ARR_REFERENCE_MAP:
                 j = OBJ["INDEX_J"]
                 i = OBJ["INDEX_I"]
@@ -201,9 +202,10 @@ class GRIDINFORMATER:
                 CENTER_LAT [j,i]      = OBJ["CENTER"]["LAT"]
                 CENTER_REF_LON [j,i]  = OBJ["CENTER_REF"]["LON"]
                 CENTER_REF_LAT [j,i]  = OBJ["CENTER_REF"]["LAT"]
+                if IF_PB: TOOLS.progress_bar((i+j*NUM_MAX_I)/float(NUM_TOTAL_OBJ), STR_DES="CREATING REFERENCE MAP")
             NCDF4_DATA.close()
         
-    def import_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4" ):
+    def import_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4", IF_PB=False):
         self.ARR_REFERENCE_MAP = []
         self.NUM_MAX_INDEX_RS = 0
         self.NUM_MIN_INDEX_RS = 999
@@ -227,14 +229,14 @@ class GRIDINFORMATER:
             
             for j in range(self.REFERENCE_MAP_NY):
                 for i in range(self.REFERENCE_MAP_NX):
-                    OBJ_ELEMENT = {"INDEX"        :                         0 ,\
-                                    "INDEX_I"     :                         0 ,\
-                                    "INDEX_J"     :                         0 ,\
-                                    "CENTER"      :  {"LAT": 0.0, "LON": 0.0} ,\
-                                    "INDEX_REF"   :                         0 ,\
-                                    "INDEX_REF_I" :                         0 ,\
-                                    "INDEX_REF_J" :                         0 ,\
-                                    "CENTER_REF"  :  {"LAT": 0.0, "LON": 0.0} }
+                    OBJ_ELEMENT = {"INDEX"       :                         0 ,\
+                                   "INDEX_I"     :                         0 ,\
+                                   "INDEX_J"     :                         0 ,\
+                                   "CENTER"      :  {"LAT": 0.0, "LON": 0.0} ,\
+                                   "INDEX_REF"   :                         0 ,\
+                                   "INDEX_REF_I" :                         0 ,\
+                                   "INDEX_REF_J" :                         0 ,\
+                                   "CENTER_REF"  :  {"LAT": 0.0, "LON": 0.0} }
                     OBJ_ELEMENT["INDEX"]       = INDEX      [j][i] 
                     OBJ_ELEMENT["INDEX_I"]     = INDEX_J    [j][i]
                     OBJ_ELEMENT["INDEX_J"]     = INDEX_I    [j][i]
@@ -248,6 +250,7 @@ class GRIDINFORMATER:
                     self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
                     self.NUM_MIN_INDEX_RS = min(self.NUM_MIN_INDEX_RS, INDEX_REF[j][i])
                     self.NUM_MAX_INDEX_RS = max(self.NUM_MAX_INDEX_RS, INDEX_REF[j][i])
+                if IF_PB: TOOLS.progress_bar((j+1)/float(self.REFERENCE_MAP_NY), STR_DES="IMPORTING ... ")
             if self.NUM_MIN_INDEX_RS == 0:
                 self.NUM_MAX_RS = self.NUM_MAX_INDEX_RS + 1
             NCDF4_DATA.close()    
@@ -316,6 +319,42 @@ class TOOLS:
             return NUM_CUM_IND / float(NUM_TOTAL_MAX)
         else:
             print("Wrong dimenstion for in put ARR_INDEX ({0:d}) and ARR_INDEX_MAX ({1:d})".format(len(ARR_INDEX), len(ARR_INDEX_MAX)))
+
+# MAKING Calandar calculator
+    def calendar_cal(ARR_START_TIME, ARR_INTERVAL, ARR_END_TIME_IN=[0, 0, 0, 0, 0, 0.0], IF_LEAP=False):
+        # DICTIONARY VERSION
+        ARR_END_TIME  = [ 0,0,0,0,0,0.0]
+        ARR_DATETIME  = ["SECOND", "MINUTE", "HOUR","DAY", "MON", "YEAR"]
+        NUM_ARR_DATETIME = len(ARR_DATETIME)
+        if IF_LEAP:
+            ARR_DAY_LIM = [0,31,29,31,30,31,30,31,31,30,31,30,31]    
+        else:
+            ARR_DAY_LIM = [0,31,28,31,30,31,30,31,31,30,31,30,31]
+        
+        DIC_TIME_LIM = \
+        {"YEAR": {"START": 0 , "LIMIT": 999999 },\
+         "MON": {"START": 1 , "LIMIT": 12 },\
+         "DAY": {"START": 1 , "LIMIT": 31 },\
+         "HOUR": {"START": 0 , "LIMIT": 23 },\
+         "MINUTE": {"START": 0 , "LIMIT": 59 },\
+         "SECOND": {"START": 0 , "LIMIT": 59 },\
+        }
+        for I, T in enumerate(ARR_START_TIME):
+            ARR_END_TIME[I] += T + ARR_INTERVAL[I]
+        if math.fmod(ARR_START_TIME[0], 4) == 0: IF_LEAP = True 
+        for I, ITEM in enumerate(ARR_DATETIME):
+            NUM_ARR_POS = NUM_ARR_DATETIME-I-1
+            if ITEM == "DAY":
+                if ARR_END_TIME[NUM_ARR_POS] > ARR_DAY_LIM[ARR_END_TIME[1]]:
+                    ARR_END_TIME[NUM_ARR_POS - 1] += 1
+                    ARR_END_TIME[NUM_ARR_POS] = DIC_TIME_LIM[ITEM]["START"]
+            else:
+                if ARR_END_TIME[NUM_ARR_POS] > DIC_TIME_LIM[ITEM]["LIMIT"]:
+                    ARR_END_TIME[NUM_ARR_POS - 1] += 1
+                    ARR_END_TIME[NUM_ARR_POS] = DIC_TIME_LIM[ITEM]["START"]
+            
+        return ARR_END_TIME
+    
 
 
 class GEO_TOOLS:
