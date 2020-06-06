@@ -35,12 +35,12 @@ class GRIDINFORMATER:
     NUM_CONST_EARTH_R = 6.37122E6 
     NUM_CONST_PI      = 3.14159265358979323846
     
-    def __init__(self, name="GRID", ARR_LAT=[], ARR_LON=[], NUM_TIME_LEN=1, DIMENSIONS=2 ):
+    def __init__(self, name="GRID", ARR_LAT=[], ARR_LON=[], NUM_NT=1, DIMENSIONS=2 ):
         self.STR_NAME       = name
         self.NUM_DIMENSIONS = DIMENSIONS
         self.NUM_LAST_INDEX = -1
         self.ARR_GRID       = []
-        self.NUM_TIME_LEN   = NUM_TIME_LEN
+        self.NUM_NT         = NUM_NT       
         
         self.ARR_LAT  = ARR_LAT
         self.ARR_LON  = ARR_LON
@@ -55,14 +55,23 @@ class GRIDINFORMATER:
             if NUM_ARR_NY_T1 - NUM_ARR_NY_T2 + NUM_ARR_NX_T1 - NUM_ARR_NX_T2 != 0:
                 print("The gridcell of LAT is {0:d}&{1:d}, and LON is {2:d}&{3:d} are not match"\
                       .format(NUM_ARR_NY_T1,NUM_ARR_NY_T2,NUM_ARR_NX_T1,NUM_ARR_NX_T2))
-    def index_map(self):
-        self.INDEX_MAP = [[ self.NUM_NULL for i in range(self.NUM_ARR_NX)] for j in range(self.NUM_ARR_NY)]
-        NUM_ALL_INDEX = len(self.ARR_GRID)
-        for n in range(NUM_ALL_INDEX):
-            self.INDEX_MAP[self.ARR_GRID[n]["INDEX_J"]][self.ARR_GRID[n]["INDEX_I"]] =\
-            self.ARR_GRID[n]["INDEX"]
+
+    def index_map(self, ARR_IN=[], NUM_IN_NX=0, NUM_IN_NY=0):
+        if len(ARR_IN) == 0:
+            self.INDEX_MAP = [[ self.NUM_NULL for i in range(self.NUM_ARR_NX)] for j in range(self.NUM_ARR_NY)]
+            NUM_ALL_INDEX = len(self.ARR_GRID)
+            for n in range(NUM_ALL_INDEX):
+                self.INDEX_MAP[self.ARR_GRID[n]["INDEX_J"]][self.ARR_GRID[n]["INDEX_I"]] =\
+                self.ARR_GRID[n]["INDEX"]
+        else:
+            MAP_INDEX = [[ self.NUM_NULL for i in range(NUM_IN_NX)] for j in range(NUM_IN_NY)]
+            NUM_ALL_INDEX = len(ARR_IN)
+            for n in range(NUM_ALL_INDEX):
+                MAP_INDEX[ARR_IN[n]["INDEX_J"]][ARR_IN[n]["INDEX_I"]] = ARR_IN[n]["INDEX"]
+        return MAP_INDEX
                                                      
     def add_an_element(self, ARR_GRID, NUM_INDEX=0, STR_VALUE=STR_VALUE_INIT, NUM_VALUE=NUM_VALUE_INIT ):
+        """ Adding an element to an empty array """
         OBJ_ELEMENT = {"INDEX" : NUM_INDEX, \
                        STR_VALUE : NUM_VALUE}
         ARR_GRID.append(OBJ_ELEMENT)
@@ -70,12 +79,16 @@ class GRIDINFORMATER:
     def add_an_geo_element(self, ARR_GRID, NUM_INDEX=-999, NUM_J=0, NUM_I=0, \
                            NUM_MAX_NX = 0, NUM_MAX_NY = 0, NUM_MAX_NT=0, \
                            ARR_VALUE_STR=[], ARR_VALUE_NUM=[] ):
+        """ Adding an geological element to an empty array 
+            The information for lat and lon of center, edge, and vertex will
+            be stored for further used. 
+        """
         NUM_NVAR      = len(ARR_VALUE_STR)
         if NUM_MAX_NX == 0 or NUM_MAX_NY == 0:
             NUM_MAX_NX = self.NUM_ARR_NX 
             NUM_MAX_NY = self.NUM_ARR_NY
         if NUM_MAX_NT == 0:
-            NUM_MAX_NT = self.NUM_TIME_LEN
+            NUM_MAX_NT = self.NUM_NT
         NUM_CENTER_LON = self.ARR_LON[NUM_J][NUM_I] 
         NUM_CENTER_LAT = self.ARR_LAT[NUM_J][NUM_I]
 
@@ -115,16 +128,16 @@ class GRIDINFORMATER:
             for I, VAR in enumerate(ARR_VALUE_STR):
                 OBJ_ELEMENT[VAR] = [{ "VALUE" : 0.0} for t in range(NUM_MAX_NT)  ]
                 if len(ARR_VALUE_NUM) == NUM_NVAR: 
-                    for t in range(NUM_MAX_NT): 
-                        OBJ_ELEMENT[VAR][t]["VALUE"] = ARR_VALUE_NUM[I][t]
+                    for T in range(NUM_MAX_NT): 
+                        OBJ_ELEMENT[VAR][T]["VALUE"] = ARR_VALUE_NUM[I][T]
         ARR_GRID.append(OBJ_ELEMENT)
         
-    def add_an_geo_variable(self, ARR_GRID, NUM_INDEX=-999, NUM_J=0, NUM_I=0, NUM_T=0,\
+    def add_an_geo_variable(self, ARR_GRID, NUM_INDEX=-999, NUM_J=0, NUM_I=0, NUM_NT=0,\
                            STR_VALUE=STR_VALUE_INIT, NUM_VALUE=NUM_VALUE_INIT ):
         if NUM_INDEX == -999:
             NUM_INDEX = self.INDEX_MAP[NUM_J][NUM_I]
-        if NUM_T == 0:
-            NUM_MAX_NT = self.NUM_TIME_LEN
+        if NUM_NT == 0:
+            NUM_MAX_NT = self.NUM_NT
         ARR_GRID[NUM_INDEX][STR_VALUE]  = {{"VALUE": NUM_VALUE } for t in range(NUM_MAX_NT)}
         
     def create_resample_lat_lon(self, ARR_RANGE_LAT=[0,0],NUM_EDGE_LAT=0,\
@@ -176,7 +189,62 @@ class GRIDINFORMATER:
                             self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
                             break
                 if IF_PB: TOOLS.progress_bar(TOOLS.loop_progress_cal([OBJ_G["INDEX"]], [NUM_OBJ_G_LEN]), STR_DES="CREATING REFERENCE MAP")
-                
+
+    def export_grid(self, ARR_GRID_IN, STR_DIR, STR_FILENAME, ARR_VAR_STR=[],\
+                ARR_VAR_ITEM=["VALUE", "MEAN", "MEDIAN", "MIN", "MAX", "P95", "P75", "P25", "P05"],\
+                NUM_NX=0, NUM_NY=0, NUM_NT=0, STR_TYPE="netCDF4", IF_PB=False ):
+        TIME_NOW = time.gmtime()
+        STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday) 
+        STR_TIME_NOW = "{0:04d}:{1:02d}:{2:02d}".format(TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec)
+        
+        if NUM_NX==0: NUM_NX = self.NUM_ARR_NX
+        if NUM_NY==0: NUM_NY = self.NUM_ARR_NY
+        if NUM_NT==0: NUM_NT = self.NUM_ARR_NT
+        
+        if STR_TYPE == "netCDF4":
+            NCDF4_DATA = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILENAME), 'w', format="NETCDF4")
+            # CREATE ATTRIBUTEs:
+            NCDF4_DATA.description = \
+            "The grid information in netCDF4"
+            NCDF4_DATA.history = "Create on {0:s} at {1:s}".format(STR_DATE_NOW, STR_TIME_NOW)
+            
+            # CREATE DIMENSIONs:
+            NCDF4_DATA.createDimension("Y"     , NUM_NY )
+            NCDF4_DATA.createDimension("X"     , NUM_NX )
+            NCDF4_DATA.createDimension("Time"  , NUM_NT )
+            NCDF4_DATA.createDimension("Values", None   )
+            
+            # CREATE BASIC VARIABLES:
+            INDEX          = NCDF4_DATA.createVariable("INDEX",          "i4", ("Y", "X"))
+            INDEX_J        = NCDF4_DATA.createVariable("INDEX_J",        "i4", ("Y", "X"))
+            INDEX_I        = NCDF4_DATA.createVariable("INDEX_I",        "i4", ("Y", "X"))
+            CENTER_LON     = NCDF4_DATA.createVariable("CENTER_LON",     "f8", ("Y", "X"))
+            CENTER_LAT     = NCDF4_DATA.createVariable("CENTER_LAT",     "f8", ("Y", "X"))
+            
+            # CREATE GROUP for Variables: 
+            for VAR in ARR_VAR_STR:
+                NCDF4_DATA.createGroup(VAR)
+                for ITEM in ARR_VAR_ITEM:
+                    if ITEM == "VALUE" :
+                        NCDF4_DATA.groups[VAR].createVariable(ITEM, "f8", ("Time", "Y", "X", "Values"))
+                    else:
+                        NCDF4_DATA.groups[VAR].createVariable(ITEM, "f8", ("Time", "Y", "X"))
+            # WRITE IN VARIABLE
+            for IND, OBJ in enumerate(ARR_GRID_IN):
+                j = OBJ["INDEX_J"]
+                i = OBJ["INDEX_I"]
+                INDEX      [j,i]      = OBJ["INDEX"]
+                INDEX_J    [j,i]      = OBJ["INDEX_J"]
+                INDEX_I    [j,i]      = OBJ["INDEX_I"]
+                CENTER_LON [j,i]      = OBJ["CENTER"]["LON"]
+                CENTER_LAT [j,i]      = OBJ["CENTER"]["LAT"]
+                for VAR in ARR_VAR_STR:
+                    for ITEM in ARR_VAR_ITEM:
+                        for T in range(NUM_NT):
+                            NCDF4_DATA.groups[VAR].variables[ITEM][t,j,i] = OBJ[VAR][T][ITEM] 
+                if IF_PB: TOOLS.progress_bar((IND+1)/(NX*NY), STR_DES="WRITING PROGRESS")
+        NCDF4_DATA.close()
+
     def export_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4", IF_PB=False ):
         TIME_NOW = time.gmtime()
         self.STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday) 
@@ -298,21 +366,22 @@ class GRIDINFORMATER:
                 self.NUM_MAX_RS = self.NUM_MAX_INDEX_RS + 1
             NCDF4_DATA.close()    
 
-    def create_resample_map(self, ARR_REFERENCE_MAP=[], ARR_VARIABLES=["Value"], ARR_GRID_IN=[],\ 
-                             DIC_PERCENTILE={ "P05": 0.05, "P10": 0.1, "P25": 0.25, "P75": 0.75, "P90": 0.90, "P95": 0.95},\
-                             IF_PB=False):
+    def create_resample_map(self, ARR_REFERENCE_MAP=[], ARR_VARIABLES=["Value"], ARR_GRID_IN=[],\
+                             IF_PB=False, NUM_MAX_NT=0):
+        if NUM_MAX_NT == 0:
+            NUM_MAX_NT = self.NUM_NT
         if len(ARR_REFERENCE_MAP) == 0:
             self.ARR_RESAMPLE_OUT = []
             self.ARR_RESAMPLE_OUT_PARA = {"EDGE": {"N": 0.0,"S": 0.0,"E": 0.0,"W": 0.0}}
             NUM_END_J = self.NUM_GRIDS_LAT - 1
             NUM_END_I = self.NUM_GRIDS_LON - 1
-            ARR_EMPTY = [float("NaN") for n in range(self.NUM_TIME_LEN)]
+            ARR_EMPTY = [float("NaN") for n in range(self.NUM_NT)]
             for J in range(self.NUM_GRIDS_LAT):
                 for I in range(self.NUM_GRIDS_LON):
                     NUM_IND = I + J * self.NUM_GRIDS_LON
                     self.add_an_geo_element(self.ARR_RESAMPLE_OUT, NUM_INDEX=NUM_IND, NUM_J=J, NUM_I=I, \
                                NUM_MAX_NX= self.NUM_GRIDS_LON, NUM_MAX_NY= self.NUM_GRIDS_LAT,\
-                               ARR_VALUE_STR=ARR_VARIABLES) 
+                               ARR_VALUE_STR=ARR_VARIABLES, NUM_MAX_NT=NUM_MAX_NT) 
             self.ARR_RESAMPLE_MAP_PARA["EDGE"]["N"] = max( self.ARR_LAT[NUM_END_J][0], self.ARR_LAT[NUM_END_J][NUM_END_I] )
             self.ARR_RESAMPLE_MAP_PARA["EDGE"]["S"] = min( self.ARR_LAT[0][0], self.ARR_LAT[0][NUM_END_I] )
             self.ARR_RESAMPLE_MAP_PARA["EDGE"]["W"] = min( self.ARR_LAT[0][0], self.ARR_LAT[NUM_END_J][0] )
@@ -328,20 +397,26 @@ class GRIDINFORMATER:
                     #OBJ_ELEMENT = {"VALUE"   :  []}
                     self.ARR_RESAMPLE_OUT[IND][VAR] = [{"VALUE" : []} for n in range(NUM_MAX_NT) ]
             for IND in range(len(ARR_GRID_IN)):
-                R_IND = ARR_GRIN_IN.ARR_REFERENCE_MAP[IND]["INDEX_REF"] 
-                R_J   = ARR_GRIN_IN.ARR_REFERENCE_MAP[IND]["INDEX_REF_J"]
-                R_I   = ARR_GRIN_IN.ARR_REFERENCE_MAP[IND]["INDEX_REF_I"]
-                IND_FIX_R = fix_ind(R_IND, R_J, R_I, ARR_XRANGE=self.ARR_RESAMPLE_LIM_X, self.ARR_YRANGE=ARR_RESAMPLE_LIM_Y, NX=self.NUM_ARR_NX, NY=self.NUM_ARR_NY)
+                R_IND = ARR_REFERENCE_MAP[IND]["INDEX_REF"] 
+                R_J   = ARR_REFERENCE_MAP[IND]["INDEX_REF_J"]
+                R_I   = ARR_REFERENCE_MAP[IND]["INDEX_REF_I"]
+                IND_FIX_R = fix_ind(R_IND, R_J, R_I, ARR_XRANGE=self.ARR_RESAMPLE_LIM_X, ARR_YRANGE=self.ARR_RESAMPLE_LIM_Y, NX=self.NUM_ARR_NX, NY=self.NUM_ARR_NY)
                 
                 if IND_FIX_R != None:
                     for VAR in ARR_VARIABLES:
-                        self.ARR_RESAMPLE_OUT[R_IND][VAR][T]["VALUE"].append(ARR_GRID_IN[IND][VAR])
-                        self.ARR_RESAMPLE_OUT[R_IND]["INDEX_REF"]     = self.ARR_REFERENCE_MAP[IND]["INDEX_REF"] 
-                        self.ARR_RESAMPLE_OUT[R_IND]["INDEX_REF_J"]   = self.ARR_REFERENCE_MAP[IND]["INDEX_REF_J"]
-                        self.ARR_RESAMPLE_OUT[R_IND]["INDEX_REF_I"]   = self.ARR_REFERENCE_MAP[IND]["INDEX_REF_I"]
+                        for T in range(NUM_MAX_NT):
+                            self.ARR_RESAMPLE_OUT[R_IND][VAR][T]["VALUE"].append(ARR_GRID_IN[IND][T][VAR])
+                    self.ARR_RESAMPLE_OUT[R_IND]["INDEX"]         = ARR_REFERENCE_MAP[IND]["INDEX_REF"] 
+                    self.ARR_RESAMPLE_OUT[R_IND]["INDEX_J"]       = ARR_REFERENCE_MAP[IND]["INDEX_REF_J"]
+                    self.ARR_RESAMPLE_OUT[R_IND]["INDEX_I"]       = ARR_REFERENCE_MAP[IND]["INDEX_REF_I"]
+                    self.ARR_RESAMPLE_OUT[R_IND]["CENTER"] = {"LAT": 0.0, "LON": 0.0 }
+                    self.ARR_RESAMPLE_OUT[R_IND]["CENTER"]["LAT"] = ARR_REFERENCE_MAP[IND]["CENTER"]["LAT"]
+                    self.ARR_RESAMPLE_OUT[R_IND]["CENTER"]["LON"] = ARR_REFERENCE_MAP[IND]["CENTER"]["LON"]
                 if IF_PB: TOOLS.progress_bar(TOOLS.loop_progress_cal([IND], [len(ARR_GRID_IN)]), STR_DES="RESAMPLING PROGRESS")
                 
-    def cal_resample_map(self, ARR_VARIABLES, ARR_GRID_IN=[]):
+    def cal_resample_map(self, ARR_VARIABLES, ARR_GRID_IN=[], NUM_MAX_NT=0):
+        if NUM_MAX_NT == 0:
+            NUM_MAX_NT = self.NUM_NT
         NUM_RS_OUT_LEN = len(self.ARR_RESAMPLE_OUT)
         for IND in range(NUM_RS_OUT_LEN):
             for VAR in ARR_VARIABLES:
@@ -357,16 +432,16 @@ class GRIDINFORMATER:
                         else: 
                             NUM_MPOS = [int(NUM_ARR_LEN/2.0)    , int(NUM_ARR_LEN/2.0 -1) ]
                         
-                        self.ARR_RESAMPLE_OUT[IND][VAR]["MIN"]     = min(ARR_IN)
-                        self.ARR_RESAMPLE_OUT[IND][VAR]["MAX"]     = max(ARR_IN)
-                        self.ARR_RESAMPLE_OUT[IND][VAR]["MEAN"]    = NUM_ARR_MEAN 
-                        self.ARR_RESAMPLE_OUT[IND][VAR]["MEDIAN"]  = ARR_IN[NUM_MPOS[0]] *0.5 + ARR_IN[NUM_MPOS[1]] *0.5
+                        self.ARR_RESAMPLE_OUT[IND][VAR][T]["MIN"]     = min(ARR_IN)
+                        self.ARR_RESAMPLE_OUT[IND][VAR][T]["MAX"]     = max(ARR_IN)
+                        self.ARR_RESAMPLE_OUT[IND][VAR][T]["MEAN"]    = NUM_ARR_MEAN 
+                        self.ARR_RESAMPLE_OUT[IND][VAR][T]["MEDIAN"]  = ARR_IN[NUM_MPOS[0]] *0.5 + ARR_IN[NUM_MPOS[1]] *0.5
                         
                         for STVA in DIC_PERCENTILE:
                             self.ARR_RESAMPLE_OUT[IND][VAR][STVA]  = ARR_IN[ round(NUM_ARR_LEN * DIC_PERCENTILE[STVA])-1]
                         for VAL in ARR_IN:
                             NUM_ARR_S2SUM += (VAL - NUM_ARR_MEAN)**2
-                        self.ARR_RESAMPLE_OUT[IND][VAR]["STD"]     =  (NUM_ARR_S2SUM / (NUM_ARR_LEN-1))**0.5
+                        self.ARR_RESAMPLE_OUT[IND][VAR][T]["STD"]     =  (NUM_ARR_S2SUM / (NUM_ARR_LEN-1))**0.5
             if IF_PB: TOOLS.progress_bar(TOOLS.loop_progress_cal([IND], [NUM_RS_OUT_LEN]), STR_DES="CALCULATION PROGRESS")            
                 
     def fix_ind(self, IND_IN, IND_J, IND_I, ARR_XRANGE=[], ARR_YRANGE=[], NX=0, NY=0):
@@ -379,35 +454,6 @@ class GRIDINFORMATER:
             IND_OUT  = IND_IN - NUM_DY * NX - NUM_NX_F * (IND_J - NUM_DY +1) - NUM_NX_R * (IND_J - NUM_DY)
         return IND_OUT   
 
-    def mask_array(self):
-
-        return
-
-    def mask_dtm(self, NUM, ARR_DTM=[0,1,2], ARR_DTM_RANGE=[0,1], ARR_DTM_STR=["OUT","IN","OUT"]):
-        """ The determination algorithm is : x-1 < NUM <= x   """
-
-        for i, n in enumerate(ARR_DTM):
-            if i == 0:
-                if NUM <= ARR_DTM_RANGE[i]: NUM_OUT = n 
-            elif i == len(ARR_DTM_RANGE):
-                if NUM > ARR_DTM_RANGE[i-1]: NUM_OUT = n
-            else: 
-                if NUM > ARR_DTM_RANGE[i-1]  and NUM <= ARR_DTM_RANGE[i]: NUM_OUT = n
-        return NUM_OUT 
-    
-    def mask_array(self, ARR_IN, ARR_MASK_OUT=[], ARR_DTM=[0,1,2], ARR_DTM_RANGE=[0,1], ARR_DTM_STR=["OUT","IN","OUT"], IF_2D=False):
-        if IF_2D:
-            NUM_ARR_NX = len(ARR_IN[0])
-            NUM_ARR_NY = len(ARR_IN)
-            ARR_OUT    = [ [ NUM_NULL for i in range(NUM_ARR_NX)] for j in range(NUM_ARR_NY) ]
-            for J in range(NUM_ARR_NY):
-                for I in range(NUM_ARR_NY):
-                    ARR_OUT[J][I] = self.mask_dtm(ARR_IN[J][I], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE, ARR_STR_DTM=ARR_STR_DTM)
-        else:
-            NUM_ARR_NX = len(ARR_IN)
-            ARR_OUT = [0 for n in range(NUM_ARR_NX)]
-            for N in range(NUM_ARR_NX):
-                ARR_OUT[N] = self.mask_dtm(ARR_IN[N], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE, ARR_STR_DTM=ARR_STR_DTM)
 
 class TOOLS:
     def progress_bar(NUM_PROGRESS, NUM_PROGRESS_BIN=0.05, STR_SYS_SYMBOL="=", STR_DES="Progress"):
@@ -415,6 +461,13 @@ class TOOLS:
         sys.stdout.write('\r')
         sys.stdout.write('[{0:20s}]{1:4.1f}% {2:s}'.format(STR_SYS_SYMBOL*NUM_SYM, NUM_PROGRESS*100, STR_DES))
         sys.stdout.flush()
+
+    def clean_arr(ARR_IN, CRITERIA=1):
+        ARR_OUT=[]
+        for i,n in enumerate(ARR_IN):
+            if len(n)> CRITERIA:
+                ARR_OUT.append(n)
+        return ARR_OUT
 
     def loop_progress_cal(ARR_INDEX, ARR_INDEX_MAX, NUM_CUM_MAX=1, NUM_CUM_IND=1, NUM_TOTAL_MAX=1):
         """ Please list from smallest to largest, i.e.: x->y->z """
@@ -463,7 +516,34 @@ class TOOLS:
 class GEO_TOOLS:
     def __init__(self):
         STR_NCDF4PY = NC.__version__
-        print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY)
+        print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY))
+
+    def mask_dtm(self, NUM, ARR_DTM=[0,1,2], ARR_DTM_RANGE=[0,1], ARR_DTM_STR=["OUT","IN","OUT"]):
+        """ The determination algorithm is : x-1 < NUM <= x   """
+
+        for i, n in enumerate(ARR_DTM):
+            if i == 0:
+                if NUM <= ARR_DTM_RANGE[i]: NUM_OUT = n 
+            elif i == len(ARR_DTM_RANGE):
+                if NUM > ARR_DTM_RANGE[i-1]: NUM_OUT = n
+            else: 
+                if NUM > ARR_DTM_RANGE[i-1]  and NUM <= ARR_DTM_RANGE[i]: NUM_OUT = n
+        return NUM_OUT 
+    
+    def mask_array(self, ARR_IN, ARR_MASK_OUT=[], ARR_DTM=[0,1,2], ARR_DTM_RANGE=[0,1], ARR_DTM_STR=["OUT","IN","OUT"], IF_2D=False):
+        if IF_2D:
+            NUM_ARR_NX = len(ARR_IN[0])
+            NUM_ARR_NY = len(ARR_IN)
+            ARR_OUT    = [ [ NUM_NULL for i in range(NUM_ARR_NX)] for j in range(NUM_ARR_NY) ]
+            for J in range(NUM_ARR_NY):
+                for I in range(NUM_ARR_NY):
+                    ARR_OUT[J][I] = self.mask_dtm(ARR_IN[J][I], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE, ARR_STR_DTM=ARR_STR_DTM)
+        else:
+            NUM_ARR_NX = len(ARR_IN)
+            ARR_OUT = [0 for n in range(NUM_ARR_NX)]
+            for N in range(NUM_ARR_NX):
+                ARR_OUT[N] = self.mask_dtm(ARR_IN[N], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE, ARR_STR_DTM=ARR_STR_DTM)
+        return ARR_OUT
 
     def MAKE_LAT_LON_ARR(FILE_NC_IN, STR_LAT="lat", STR_LON="lon", source="CFC"):
         """ Reading LAT and LON from a NC file """
@@ -486,21 +566,18 @@ class GEO_TOOLS:
 class NETCDF4_HELPER:
     def __init__(self):
         STR_NCDF4PY = NC.__version__
-        print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY)
+        print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY))
 
-    def create_wrf_ensemble(self, STR_FILE_IN, STR_FILE_OUT, ARR_VAR=[], STR_DIR="./", NUM_ENSEMBLE_SIZE=1):): 
-
+    def create_wrf_ensemble(self, STR_FILE_IN, STR_FILE_OUT, ARR_VAR=[], STR_DIR="./", NUM_ENSEMBLE_SIZE=1 ):
         FILE_OUT = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILE_OUT), "w",format="NETCDF4")
         FILE_IN  = NC.Dataset("{1:s}/{1:s}".format(STR_DIR, STR_FILE_IN ), "r",format="NETCDF4")
         
         # CREATE DIMENSIONS:
-        
         for DIM in FILE_IN.dimensions:
             FILE_OUT.createDimension(DIM, FILE_IN.dimensions[DIM].size )
         FILE_OUT.createDimension("Ensembles", NUM_ENSEMBLE_SIZE )
         
         # CREATE ATTRIBUTES:
-    
         FILE_OUT.TITLE                               = FILE_IN.TITLE                      
         FILE_OUT.START_DATE                          = FILE_IN.START_DATE    
         FILE_OUT.SIMULATION_START_DATE               = FILE_IN.SIMULATION_START_DATE               
@@ -519,11 +596,10 @@ class NETCDF4_HELPER:
                     FILE_OUT.createVariable(V[0],          "f8", ("Ensembles", "Time", "south_north", "west_east" ))
                 elif V[1] == "3D":
                     FILE_OUT.createVariable(V[0],          "f8", ("Ensembles", "Time", "bottom_top", "south_north", "west_east" ))
-            
         FILE_OUT.close() 
         FILE_IN.close()
         
-    def add_ensemble(FILE_IN, FILE_OUT, STR_VAR, STR_DIM="2D", STR_DIR="./", IND_ENSEMBLE=0):
+    def add_ensemble(self, FILE_IN, FILE_OUT, STR_VAR, STR_DIM="2D", STR_DIR="./", IND_ENSEMBLE=0):
         FILE_OUT = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, FILE_OUT), "a",format="NETCDF4")
         FILE_IN  = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, FILE_IN ), "r",format="NETCDF4")
         
@@ -538,16 +614,6 @@ class NETCDF4_HELPER:
             elif STR_DIM == "3D":
                 for k in range(NUM_NK):
                     FILE_OUT.variables[STR_VAR][IND_ENSEMBLE, time] = FILE_IN.variables[STR_VAR][time]
-                        
         FILE_OUT.close() 
         FILE_IN.close()
-
-
-
-
-
-
-
-
-
 
