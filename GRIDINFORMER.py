@@ -10,7 +10,6 @@ try:
 except:
     print("Do not import numpy")
 
-
 class GRIDINFORMATER:
     """
     This object is the information of the input gridcells/array/map. 
@@ -237,7 +236,7 @@ class GRIDINFORMATER:
                     NCDF4_DATA.variables[V][n] = map_in[n]
             for V1 in ["CENTER"]:
                 for V2 in ["LON", "LAT"]:
-                    map_in = self.convert_grid2map(ARR_GRID_IN, V1, V2, NX=NUM_NX, NY=NUM_NY, NC_TYPE="INT")
+                    map_in = self.convert_grid2map(ARR_GRID_IN, V1, V2, NX=NUM_NX, NY=NUM_NY, NC_TYPE="FLOAT")
                     for n in range(len(map_in)):
                         NCDF4_DATA.variables["{0:s}_{1:s}".format(V1, V2)][n] = map_in[n]
             
@@ -246,7 +245,6 @@ class GRIDINFORMATER:
                     map_in = self.convert_grid2map(ARR_GRID_IN, V1, V2, NX=NUM_NX, NY=NUM_NY, NT=NUM_NT)
                     for n in range(len(map_in)):
                         NCDF4_DATA.groups[V1].variables[V2][n] = map_in[n]
-                if IF_PB: TOOLS.progress_bar((IND+1)/(NUM_NX*NUM_NY), STR_DES="WRITING PROGRESS")
         NCDF4_DATA.close()
 
 
@@ -506,7 +504,6 @@ class GRIDINFORMATER:
                             self.ARR_RESAMPLE_OUT[IND][VAR][T][STVA]  = ARR_IN[ round(NUM_ARR_LEN * DIC_PERCENTILE[STVA])-1]
                         for VAL in ARR_IN:
                             NUM_ARR_S2SUM += (VAL - NUM_ARR_MEAN)**2
-                        print(NUM_ARR_S2SUM, NUM_ARR_LEN-1)
                         self.ARR_RESAMPLE_OUT[IND][VAR][T]["STD"]     =  (NUM_ARR_S2SUM / (NUM_ARR_LEN-1))**0.5
             if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([IND], [NUM_RS_OUT_LEN]), STR_DES="RESAMPLING CALCULATION")            
 
@@ -548,6 +545,16 @@ class GRIDINFORMATER:
                             ARR_OUT[T][ GRID["INDEX_J"] ][ GRID["INDEX_I"] ] = GRID[STR_VAR][T][STR_VAR_TYPE]
                 if IF_PB==True: TOOLS.progress_bar(((I+1)/(len(ARR_GRID_IN))))
         return ARR_OUT
+
+    def mask_grid(self, ARR_GRID_IN, STR_VAR, STR_VAR_TYPE, NUM_NT=0, STR_MASK="MASK",\
+              ARR_NUM_DTM=[0,1,2], ARR_NUM_DTM_RANGE=[0,1]):
+        if NUM_NT == 0:
+            NUM_NT= self.NUM_NT
+        for IND, GRID in enumerate(ARR_GRID_IN):
+            for T in range(NUM_NT):
+                NUM_DTM = GEO_TOOLS.mask_dtm(GRID[STR_VAR][T][STR_VAR_TYPE], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE)
+                ARR_GRID_IN[IND][STR_VAR][T][STR_MASK] = NUM_DTM
+
                 
 class TOOLS:
     """ TOOLS is contains:
