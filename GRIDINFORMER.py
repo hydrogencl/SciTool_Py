@@ -575,7 +575,7 @@ class TOOLS:
     def progress_bar(NUM_PROGRESS, NUM_PROGRESS_BIN=0.05, STR_SYS_SYMBOL="=", STR_DES="Progress"):
         NUM_SYM = int(NUM_PROGRESS / NUM_PROGRESS_BIN)
         sys.stdout.write('\r')
-        sys.stdout.write('[{0:20s}]::{1:4.2f}% {2:s}'.format(STR_SYS_SYMBOL*NUM_SYM, NUM_PROGRESS*100, STR_DES))
+        sys.stdout.write('[{0:20s}] {1:4.2f}% {2:s}'.format(STR_SYS_SYMBOL*NUM_SYM, NUM_PROGRESS*100, STR_DES))
         sys.stdout.flush()
 
     def clean_arr(ARR_IN, CRITERIA=1):
@@ -733,4 +733,22 @@ class NETCDF4_HELPER:
                     FILE_OUT.variables[STR_VAR][IND_ENSEMBLE, time] = FILE_IN.variables[STR_VAR][time]
         FILE_OUT.close() 
         FILE_IN.close()
+
+
+
+class WRF_HELPER:
+    STR_DIR_ROOT  = "./"
+    NUM_TIME_INIT = 0
+    def __init__(self):
+        STR_NCDF4PY = NC.__version__
+        print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY))
+
+
+    def GEO_FINDER(self, ARR_POS_SW, ARR_POS_NE, STR_FILE="geo_em.d01.nc", STR_DIR=""):
+        if STR_DIR == "":
+            STR_DIR == self.STR_DIR_ROOT
+        FILE_IN  = NC.Dataset("{1:s}/{1:s}".format(STR_DIR, STR_FILE_IN ), "r",format="NETCDF4")
+        MAP_LAT  = FILE_IN.variables["CLAT"] [NUM_TIME_INIT]
+        MAP_LON  = FILE_IN.variables["CLONG"][NUM_TIME_INIT]
+        NUM_
 
