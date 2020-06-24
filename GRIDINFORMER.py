@@ -189,9 +189,9 @@ class GRIDINFORMATER:
                             self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
                             break
                         else:
-                            print("HUSTON: IND={0:d},".format(OBJ_G["INDEX"])
-                                    print("NUM_CHK_IN_EW={0:f}".format(NUM_CHK_IN_EW))
-                                    print("NUM_CHK_IN_SN={0:f}".format(NUM_CHK_IN_SN))
+                            print("WE GOT PROBLEM: IND={0:d},".format(OBJ_G["INDEX"])
+                            print("NUM_CHK_IN_EW={0:f}".format(NUM_CHK_IN_EW))
+                            print("NUM_CHK_IN_SN={0:f}".format(NUM_CHK_IN_SN))
                 if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([OBJ_G["INDEX"]], [NUM_OBJ_G_LEN]), STR_DES="CREATING REFERENCE MAP")
 
     def export_grid_map(self, ARR_GRID_IN, STR_DIR, STR_FILENAME, ARR_VAR_STR=[],\
