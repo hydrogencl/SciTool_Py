@@ -188,6 +188,10 @@ class GRIDINFORMATER:
                                                  }          
                             self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
                             break
+                        else:
+                            print("HUSTON: IND={0:d},".format(OBJ_G["INDEX"])
+                                    print("NUM_CHK_IN_EW={0:f}".format(NUM_CHK_IN_EW))
+                                    print("NUM_CHK_IN_SN={0:f}".format(NUM_CHK_IN_SN))
                 if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([OBJ_G["INDEX"]], [NUM_OBJ_G_LEN]), STR_DES="CREATING REFERENCE MAP")
 
     def export_grid_map(self, ARR_GRID_IN, STR_DIR, STR_FILENAME, ARR_VAR_STR=[],\
@@ -317,8 +321,8 @@ class GRIDINFORMATER:
             NCDF4_DATA.history = "Create on {0:s} at {1:s}".format(self.STR_DATE_NOW, self.STR_TIME_NOW)
             
             # CREATE DIMENSIONs:
-            NCDF4_DATA.createDimension("Y",self.NUM_ARR_NY)
-            NCDF4_DATA.createDimension("X",self.NUM_ARR_NX)
+            NCDF4_DATA.createDimension("Y",self.NUM_NY)
+            NCDF4_DATA.createDimension("X",self.NUM_NX)
             # CREATE_VARIABLES:
             INDEX          = NCDF4_DATA.createVariable("INDEX",          "i4", ("Y", "X"))
             INDEX_J        = NCDF4_DATA.createVariable("INDEX_J",        "i4", ("Y", "X"))
@@ -459,7 +463,7 @@ class GRIDINFORMATER:
             for IND in range(len(self.ARR_RESAMPLE_OUT)):
                 for VAR in ARR_VARIABLES:
                     self.ARR_RESAMPLE_OUT[IND][VAR] = [{"VALUE" : []} for T in range(NUM_NT) ]
-            for IND in range(len(ARR_GRID_IN)):
+            for IND in range(len(ARR_REFERENCE_MAP)):
                 R_IND = ARR_REFERENCE_MAP[IND]["INDEX_REF"] 
                 R_J   = ARR_REFERENCE_MAP[IND]["INDEX_REF_J"]
                 R_I   = ARR_REFERENCE_MAP[IND]["INDEX_REF_I"]
@@ -662,7 +666,7 @@ class GEO_TOOLS:
                 ARR_OUT[N] = self.mask_dtm(ARR_IN[N], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE, ARR_STR_DTM=ARR_STR_DTM)
         return ARR_OUT
 
-    def MAKE_LAT_LON_ARR(FILE_NC_IN, STR_LAT="lat", STR_LON="lon", source="CFC"):
+    def MAKE_LAT_LON_ARR(self, FILE_NC_IN, STR_LAT="lat", STR_LON="lon", source="CFC"):
         """ Reading LAT and LON from a NC file """
 
         NC_DATA_IN = NC.Dataset(FILE_NC_IN, "r", format="NETCDF4")
@@ -734,21 +738,73 @@ class NETCDF4_HELPER:
         FILE_OUT.close() 
         FILE_IN.close()
 
-
-
 class WRF_HELPER:
     STR_DIR_ROOT  = "./"
     NUM_TIME_INIT = 0
+    NUM_SHIFT     = 0.001
+
     def __init__(self):
+        """ 
+        Remember: most array should be follow the rule of [j,i] instead of [x,y]. 
+        """
         STR_NCDF4PY = NC.__version__
         print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY))
 
 
-    def GEO_FINDER(self, ARR_POS_SW, ARR_POS_NE, STR_FILE="geo_em.d01.nc", STR_DIR=""):
+    def GEO_INFORMATER(self, STR_FILE="geo_em.d01.nc", STR_DIR=""):
+        print("INPUT GEO FILE: {0:s}".format(STR_FILE))
         if STR_DIR == "":
             STR_DIR == self.STR_DIR_ROOT
-        FILE_IN  = NC.Dataset("{1:s}/{1:s}".format(STR_DIR, STR_FILE_IN ), "r",format="NETCDF4")
-        MAP_LAT  = FILE_IN.variables["CLAT"] [NUM_TIME_INIT]
-        MAP_LON  = FILE_IN.variables["CLONG"][NUM_TIME_INIT]
-        NUM_
+        self.FILE_IN  = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILE ), "r",format="NETCDF4")
+        self.MAP_LAT  = self.FILE_IN.variables["CLAT"] [self.NUM_TIME_INIT]
+        self.MAP_LON  = self.FILE_IN.variables["CLONG"][self.NUM_TIME_INIT]
+        #self.NUM_NX   = self.FILE_IN.i_parent_end - self.FILE_IN.i_parent_start
+        #self.NUM_NY   = self.FILE_IN.j_parent_end - self.FILE_IN.j_parent_start
+        ARR_TMP_IN     = self.FILE_IN.variables["CLONG"][0]
+        # Since NetCDF4 for python does not support the hyphen in attributes, I 
+        # am forced to calculate the NX and NY based on a map in the NC file. 
+        self.NUM_NX    = len(ARR_TMP_IN[0])
+        self.NUM_NY    = len(ARR_TMP_IN)
 
+        self.NUM_DX   = self.FILE_IN.DX 
+        self.NUM_DY   = self.FILE_IN.DX 
+        
+    def GEO_HELPER(self, ARR_LL_SW, ARR_LL_NE):
+        self.MAP_CROP_MASK  = [[ 0 for i in range(self.NUM_NX)] for j in range(self.NUM_NY)]
+        self.DIC_CROP_INFO = {"NE": {"LAT":0, "LON":0, "I":0, "J":0},\
+                               "SW": {"LAT":0, "LON":0, "I":0, "J":0}}
+        ARR_TMP_I   = []
+        ARR_TMP_J   = []
+        for j in range(self.NUM_NY):
+            for i in range(self.NUM_NX):
+                NUM_CHK_SW_J = self.MAP_LAT[j][i] - ARR_LL_SW[0]
+                if NUM_CHK_SW_J == 0:
+                    NUM_CHK_SW_J = self.MAP_LAT[j][i] - ARR_LL_SW[0] + self.NUM_SHIFT
+                NUM_CHK_SW_I = self.MAP_LON[j][i] - ARR_LL_SW[1]
+                if NUM_CHK_SW_I == 0:
+                    NUM_CHK_SW_I = self.MAP_LAT[j][i] - ARR_LL_SW[1] - self.NUM_SHIFT
+                NUM_CHK_NE_J = self.MAP_LAT[j][i] - ARR_LL_NE[0]
+                if NUM_CHK_NE_J == 0:
+                    NUM_CHK_NE_J = self.MAP_LAT[j][i] - ARR_LL_NE[0] + self.NUM_SHIFT
+                NUM_CHK_NE_I = self.MAP_LON[j][i] - ARR_LL_NE[1]
+                if NUM_CHK_NE_I == 0:
+                    NUM_CHK_NE_I = self.MAP_LON[j][i] - ARR_LL_NE[1] - self.NUM_SHIFT
+
+                NUM_CHK_NS_IN = NUM_CHK_SW_J * NUM_CHK_NE_J
+                NUM_CHK_WE_IN = NUM_CHK_SW_I * NUM_CHK_NE_I
+                if NUM_CHK_NS_IN < 0 and NUM_CHK_WE_IN < 0:
+                    self.MAP_CROP_MASK[j][i] = 1
+                    ARR_TMP_J.append(j) 
+                    ARR_TMP_I.append(i)
+        NUM_SW_J = min( ARR_TMP_J )
+        NUM_SW_I = min( ARR_TMP_I )
+        NUM_NE_J = max( ARR_TMP_J )
+        NUM_NE_I = max( ARR_TMP_I )
+        self.DIC_CROP_INFO["NE"]["J"]    = NUM_NE_J
+        self.DIC_CROP_INFO["NE"]["I"]    = NUM_NE_I
+        self.DIC_CROP_INFO["NE"]["LAT"]  = self.MAP_LAT[NUM_NE_J][NUM_NE_I]
+        self.DIC_CROP_INFO["NE"]["LON"]  = self.MAP_LON[NUM_NE_J][NUM_NE_I]
+        self.DIC_CROP_INFO["SW"]["J"]    = NUM_SW_J
+        self.DIC_CROP_INFO["SW"]["I"]    = NUM_SW_I
+        self.DIC_CROP_INFO["SW"]["LAT"]  = self.MAP_LAT[NUM_SW_J][NUM_SW_I]
+        self.DIC_CROP_INFO["SW"]["LON"]  = self.MAP_LON[NUM_SW_J][NUM_SW_I]
