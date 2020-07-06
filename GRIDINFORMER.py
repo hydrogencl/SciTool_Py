@@ -188,10 +188,10 @@ class GRIDINFORMATER:
                                                  }          
                             self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
                             break
-                        else:
-                            print("WE GOT PROBLEM: IND={0:d},".format(OBJ_G["INDEX"])
-                            print("NUM_CHK_IN_EW={0:f}".format(NUM_CHK_IN_EW))
-                            print("NUM_CHK_IN_SN={0:f}".format(NUM_CHK_IN_SN))
+                        #else:
+                        #    print("WE GOT PROBLEM: IND={0:d},".format(OBJ_G["INDEX"])
+                        #    print("NUM_CHK_IN_EW={0:f}".format(NUM_CHK_IN_EW))
+                        #    print("NUM_CHK_IN_SN={0:f}".format(NUM_CHK_IN_SN))
                 if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([OBJ_G["INDEX"]], [NUM_OBJ_G_LEN]), STR_DES="CREATING REFERENCE MAP")
 
     def export_grid_map(self, ARR_GRID_IN, STR_DIR, STR_FILENAME, ARR_VAR_STR=[],\
@@ -808,3 +808,39 @@ class WRF_HELPER:
         self.DIC_CROP_INFO["SW"]["I"]    = NUM_SW_I
         self.DIC_CROP_INFO["SW"]["LAT"]  = self.MAP_LAT[NUM_SW_J][NUM_SW_I]
         self.DIC_CROP_INFO["SW"]["LON"]  = self.MAP_LON[NUM_SW_J][NUM_SW_I]
+
+
+    def PROFILE_HELPER(self, STR_FILE_IN, ARR_DATE_START, NUM_DOMS=3, NUM_TIMESTEPS=24, IF_PB=False):
+        """
+        This functions reads the filename, array of starting date, and simulation hours and numbers of domains
+        to profiling the time it takes for WRF.
+        """
+        FILE_READ_IN   = open("{0:s}/{1:s}".format(STR_FILE_IN))
+        ARR_READ_IN    = FILE_READ_IN.readlines()
+        NUM_TIME       = NUM_TIMESTEPS
+        NUM_DOMAIN     =  NUM_DOMS
+        NUM_DATE_START = ARR_DATE_START
+        NUM_LEN_IN     = len(ARR_READ_IN)
+
+        ARR_TIME_PROFILE = [[0 for T in range(NUM_TIME)] for D in range(NUM_DOMS)]
+        for I, TEXT_IN in enumerate(ARR_READ_IN):
+            ARR_TEXT = re.split("\s",TEXT_IN.strip())
+            "Timing for main"
+            if ARR_TEXT[0] == "Timing" and ARR_TEXT[2] == "main":
+                for ind, T in enumerate(ARR_TEXT):
+                    if T == "time"   : ind_time_text    = ind + 1
+                    if T == "elapsed": ind_elapsed_text = ind - 1
+                    if T == "domain" : ind_domain_text  = ind + 3
+                arr_time_in = re.split("_", ARR_TEXT[ind_time_text])
+                arr_date    = re.split("-", arr_time_in[0])
+                arr_time    = re.split(":", arr_time_in[1])
+                num_domain  = int(re.split(":", ARR_TEXT[ind_domain_text])[0])
+                num_elapsed = float(ARR_TEXT[ind_elapsed_text])
+                NUM_HOUR_FIX = (int(arr_date[2]) - NUM_DATE_START[2]) * 24
+                NUM_HOUR     = NUM_HOUR_FIX + int(arr_time[0])
+                ARR_TIME_PROFILE[num_domain-1][NUM_HOUR] += num_elapsed
+        
+            if IF_PB: TOOLS.progress_bar(I/float(NUM_LEN_IN))
+        self.ARR_TIME_PROFILE = ARR_TIME_PROFILE
+        return ARR_TIME_PROFILE
+
