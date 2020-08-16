@@ -3,11 +3,16 @@ SciTool_Py
 
 All the files are protect by LGPL. Use it, distribute it, and NEVER copyright them. 
 
-# Scientific Tool Assemble
+The main works are here: 
 
-## SCI_TOOL
++ The algorithm to read, write, and deal with grids and arrays in geoscience. 
++ The handy tools for programing.
++ Some handy tools for plotting. 
++ Handy tools for WRF
 
-This will be the main contribution to the scientific programming tools, including:
+### GRIDINFORMATER 
+
+Will deal with gridcells. 
 
 ### progress bar ###
 Based on the work from stackflow, the progress bar can be used in `Jupyter` and `Terminal` and Python IDE. 
@@ -28,6 +33,7 @@ This is used to create and read the output/input files for these format:
 - `.xyz`
 
 With `matplotlib` user can use it to quickly plot the array files. 
+One day this will be integrated into GRIDINFORMER
 
 ## Bib_Corrected
 
