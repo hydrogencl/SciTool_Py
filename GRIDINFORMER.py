@@ -33,7 +33,7 @@ class GRIDINFORMATER:
     # FROM WRF: module_cam_shr_const_mod.f90
     NUM_CONST_EARTH_R = 6.37122E6 
     NUM_CONST_PI      = 3.14159265358979323846
-    
+ 
     def __init__(self, name="GRID", ARR_LAT=[], ARR_LON=[], NUM_NT=1, DIMENSIONS=2 ):
         self.STR_NAME       = name
         self.NUM_DIMENSIONS = DIMENSIONS
@@ -559,7 +559,53 @@ class GRIDINFORMATER:
                 NUM_DTM = GEO_TOOLS.mask_dtm(GRID[STR_VAR][T][STR_VAR_TYPE], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE)
                 ARR_GRID_IN[IND][STR_VAR][T][STR_MASK] = NUM_DTM
 
-                
+class MATH_TOOLS:
+    """ Some math tools that help us to calculate. 
+        gau_kde: kernel density estimator by Gaussian Function
+        standard_dev: The Standard deviation
+    """
+
+    def gau_kde(ARR_IN_X, ARR_IN_I, NUM_BW=0.1  ):
+        NUM_SUM = 0.
+        NUM_LENG = len(ARR_IN)
+        ARR_OUT  = [ 0. for n in range(NUM_LENG)]
+        for IND_J, J in enumerate(ARR_IN_X):
+            NUM_SUM = 0.0
+            for I in ARR_IN_I:
+                NUM_SUM += 1 / (2 * math.pi)**0.5 * math.e ** (-0.5 * ((J-I)/NUM_BW) ** 2 ) 
+            ARR_OUT[IND_J] = NUM_SUM / len(ARR_IN_I) / NUM_BW
+        return ARR_OUT 
+        
+    def standard_dev(ARR_IN):
+        NUM_SUM = sum(ARR_IN)
+        NUM_N   = len(ARR_IN)
+        NUM_MEAN = 1.0*NUM_SUM/NUM_N
+        NUM_SUM2 = 0.0
+        for N in ARR_IN:
+            NUM_SUM2 = (N-NUM_MEAN)**2
+        return (NUM_SUM2 / (NUM_N-1)) ** 0.5
+    
+    def h_esti(ARR_IN):
+        #A rule-of-thumb bandwidth estimator
+        NUM_SIGMA = standard_dev(ARR_IN)
+        NUM_N     = len(ARR_IN)
+        return ((4 * NUM_SIGMA ** 5) / (3*NUM_N)  ) ** 0.2
+    
+    def data2array(ARR_IN, STR_IN="MEAN"):
+        NUM_J = len(ARR_IN)
+        NUM_I = len(ARR_IN[0])
+        ARR_OUT = [[ 0.0 for i in range(NUM_I)] for j in range(NUM_J) ]
+        for j in range(NUM_J):
+            for i in range(NUM_I):
+                ARR_OUT[j][i] = ARR_IN[j][i][STR_IN]
+        return ARR_OUT
+    def reshape2d(ARR_IN):
+        ARR_OUT=[]
+        for A in ARR_IN:
+            for B in A:
+                ARR_OUT.append(B)
+        return ARR_OUT
+
 class TOOLS:
     """ TOOLS is contains:
         fix_ind

@@ -121,7 +121,7 @@ def readcsv(sourcefile, str_null="noData", num_null=-999.999):
                     chk_val = arr_in[i]
                     if chk_val == str_null: 
                         result_arr[i][j-num_pass] = num_null
-                        print j,i,chk_val
+                        print (j,i,chk_val)
                     else:
                         result_arr[i][j-num_pass] = float(chk_val)
     return result_arr,result_arr_text
