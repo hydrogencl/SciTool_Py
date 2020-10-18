@@ -58,7 +58,7 @@ class GRIDINFORMATER:
 
     def index_map(self, ARR_IN=[], NUM_IN_NX=0, NUM_IN_NY=0):
         if len(ARR_IN) == 0:
-            self.INDEX_MAP = [[ self.NUM_NULL for i in range(self.NUM_ARR_NX)] for j in range(self.NUM_ARR_NY)]
+            self.INDEX_MAP = [[ self.NUM_NULL for i in range(self.NUM_NX)] for j in range(self.NUM_NY)]
             NUM_ALL_INDEX = len(self.ARR_GRID)
             for n in range(NUM_ALL_INDEX):
                 self.INDEX_MAP[self.ARR_GRID[n]["INDEX_J"]][self.ARR_GRID[n]["INDEX_I"]] =\
@@ -201,9 +201,9 @@ class GRIDINFORMATER:
         STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday)
         STR_TIME_NOW = "{0:04d}:{1:02d}:{2:02d}".format(TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec)
     
-        if NUM_NX==0: NUM_NX = self.NUM_ARR_NX
-        if NUM_NY==0: NUM_NY = self.NUM_ARR_NY
-        if NUM_NT==0: NUM_NT = self.NUM_ARR_NT
+        if NUM_NX==0: NUM_NX = self.NUM_NX
+        if NUM_NY==0: NUM_NY = self.NUM_NY
+        if NUM_NT==0: NUM_NT = self.NUM_NT
     
         if STR_TYPE == "netCDF4":
             NCDF4_DATA = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILENAME), 'w', format="NETCDF4")
@@ -260,9 +260,9 @@ class GRIDINFORMATER:
         STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday) 
         STR_TIME_NOW = "{0:04d}:{1:02d}:{2:02d}".format(TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec)
         
-        if NUM_NX==0: NUM_NX = self.NUM_ARR_NX
-        if NUM_NY==0: NUM_NY = self.NUM_ARR_NY
-        if NUM_NT==0: NUM_NT = self.NUM_ARR_NT
+        if NUM_NX==0: NUM_NX = self.NUM_NX
+        if NUM_NY==0: NUM_NY = self.NUM_NY
+        if NUM_NT==0: NUM_NT = self.NUM_NT
         
         if STR_TYPE == "netCDF4":
             NCDF4_DATA = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILENAME), 'w', format="NETCDF4")
@@ -335,7 +335,7 @@ class GRIDINFORMATER:
             CENTER_REF_LON = NCDF4_DATA.createVariable("CENTER_REF_LON", "f8", ("Y", "X"))
             CENTER_REF_LAT = NCDF4_DATA.createVariable("CENTER_REF_LAT", "f8", ("Y", "X"))
             NUM_TOTAL_OBJ = len(self.ARR_REFERENCE_MAP)
-            NUM_MAX_I     = self.NUM_ARR_NX
+            NUM_MAX_I     = self.NUM_NX
             for OBJ in self.ARR_REFERENCE_MAP:
                 j = OBJ["INDEX_J"]
                 i = OBJ["INDEX_I"]
@@ -651,33 +651,78 @@ class TOOLS:
         ARR_END_TIME  = [ 0,0,0,0,0,0.0]
         ARR_DATETIME  = ["SECOND", "MINUTE", "HOUR","DAY", "MON", "YEAR"]
         NUM_ARR_DATETIME = len(ARR_DATETIME)
-        if math.fmod(ARR_START_TIME[0],4) == 0: IF_LEAP=True
-        if IF_LEAP:
-            ARR_DAY_LIM = [0,31,29,31,30,31,30,31,31,30,31,30,31]    
-        else:
-            ARR_DAY_LIM = [0,31,28,31,30,31,30,31,31,30,31,30,31]
-        
+        IF_FERTIG = False
+        ARR_FERTIG = [0,0,0,0,0,0]
         DIC_TIME_LIM = \
-        {"YEAR": {"START": 0 , "LIMIT": 999999 },\
-         "MON": {"START": 1 , "LIMIT": 12 },\
-         "DAY": {"START": 1 , "LIMIT": 31 },\
-         "HOUR": {"START": 0 , "LIMIT": 23 },\
+        {"YEAR"  : {"START": 0 , "LIMIT": 9999 },\
+         "MON"   : {"START": 1 , "LIMIT": 12 },\
+         "DAY"   : {"START": 1 , "LIMIT": 31 },\
+         "HOUR"  : {"START": 0 , "LIMIT": 23 },\
          "MINUTE": {"START": 0 , "LIMIT": 59 },\
          "SECOND": {"START": 0 , "LIMIT": 59 },\
         }
         for I, T in enumerate(ARR_START_TIME):
             ARR_END_TIME[I] = T + ARR_INTERVAL[I]
-        for I, ITEM in enumerate(ARR_DATETIME):
-            NUM_ARR_POS = NUM_ARR_DATETIME-I-1
-            if ITEM == "DAY":
-                if ARR_END_TIME[NUM_ARR_POS] > ARR_DAY_LIM[ARR_END_TIME[1]]:
-                    ARR_END_TIME[NUM_ARR_POS - 1] += 1
-                    ARR_END_TIME[NUM_ARR_POS] = DIC_TIME_LIM[ITEM]["START"]
+        while IF_FERTIG == False:
+            if math.fmod(ARR_END_TIME[0],4) == 0: IF_LEAP=True
+            if IF_LEAP:
+                ARR_DAY_LIM = [0,31,29,31,30,31,30,31,31,30,31,30,31]    
             else:
-                if ARR_END_TIME[NUM_ARR_POS] > DIC_TIME_LIM[ITEM]["LIMIT"]:
-                    ARR_END_TIME[NUM_ARR_POS - 1] += 1
-                    ARR_END_TIME[NUM_ARR_POS] = DIC_TIME_LIM[ITEM]["START"]
+                ARR_DAY_LIM = [0,31,28,31,30,31,30,31,31,30,31,30,31]
+            for I, ITEM in enumerate(ARR_DATETIME):
+                NUM_ARR_POS = NUM_ARR_DATETIME-I-1
+                if ITEM == "DAY":
+                    if ARR_END_TIME[NUM_ARR_POS] > ARR_DAY_LIM[ARR_END_TIME[1]]:
+                        ARR_END_TIME[NUM_ARR_POS] = ARR_END_TIME[NUM_ARR_POS] - ARR_DAY_LIM[ARR_END_TIME[1]] 
+                        ARR_END_TIME[NUM_ARR_POS - 1] += 1
+                else:
+                    if ARR_END_TIME[NUM_ARR_POS] > DIC_TIME_LIM[ITEM]["LIMIT"]:
+                        ARR_END_TIME[NUM_ARR_POS - 1] += 1
+                        ARR_END_TIME[NUM_ARR_POS] = ARR_END_TIME[NUM_ARR_POS] - DIC_TIME_LIM[ITEM]["LIMIT"] - 1
+            for I, ITEM in enumerate(ARR_DATETIME):
+                NUM_ARR_POS = NUM_ARR_DATETIME-I-1
+                if ITEM == "DAY":
+                    if ARR_END_TIME[NUM_ARR_POS] <= ARR_DAY_LIM[ARR_END_TIME[1]]: ARR_FERTIG[NUM_ARR_POS] = 1
+                else: 
+                    if ARR_END_TIME[NUM_ARR_POS] <= DIC_TIME_LIM[ITEM]["LIMIT"]:  ARR_FERTIG[NUM_ARR_POS] = 1
+                if sum(ARR_FERTIG) == 6: IF_FERTIG = True
         return ARR_END_TIME
+
+class MPI_TOOLS:
+
+    def __init__(self):
+        NUM_RANK = 1
+        NUM_SIZE = 1
+
+    def CPU_GEOMETRY_2D(NY_SIZE, NX_SIZE, NX_CORES=1, NY_CORES=1):
+        NUM_SIZE    = NX_CORES *  NY_CORES
+        NUM_NX_LAST = NX_SIZE  %  NX_CORES
+        NUM_NY_LAST = NY_SIZE  %  NY_CORES
+    
+        NUM_NX_DIFF = int((NX_SIZE - NUM_NX_LAST) / NX_CORES )
+        NUM_NY_DIFF = int((NY_SIZE - NUM_NY_LAST) / NY_CORES )
+    
+        IND_RANK = 0
+        ARR_RANK_DESIGN = [ 0 for n in range(NUM_SIZE)]
+        for ny in range(NY_CORES):
+            for nx in range(NX_CORES):
+                NUM_RANK = ny * NX_CORES + nx
+                DIC_IN   = {"INDEX_IN": NUM_RANK, "NX_START": 0, "NY_START": 0, "NX_END": 0, "NY_END": 0  }
+                if ny < NY_CORES-1:
+                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF
+                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF
+                else:
+                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF
+                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF + NUM_NY_LAST
+                if nx < NX_CORES-1:
+                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF
+                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF
+                else:
+                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF  
+                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF + NUM_NX_LAST
+                ARR_RANK_DESIGN[NUM_RANK] = DIC_IN
+        return ARR_RANK_DESIGN 
+
 
     
 class GEO_TOOLS:
@@ -699,16 +744,16 @@ class GEO_TOOLS:
     
     def mask_array(self, ARR_IN, ARR_MASK_OUT=[], ARR_DTM=[0,1,2], ARR_DTM_RANGE=[0,1], ARR_DTM_STR=["OUT","IN","OUT"], IF_2D=False):
         if IF_2D:
-            NUM_ARR_NX = len(ARR_IN[0])
-            NUM_ARR_NY = len(ARR_IN)
-            ARR_OUT    = [ [ self.NUM_NULL for i in range(NUM_ARR_NX)] for j in range(NUM_ARR_NY) ]
-            for J in range(NUM_ARR_NY):
-                for I in range(NUM_ARR_NY):
+            NUM_NX = len(ARR_IN[0])
+            NUM_NY = len(ARR_IN)
+            ARR_OUT    = [ [ self.NUM_NULL for i in range(NUM_NX)] for j in range(NUM_NY) ]
+            for J in range(NUM_NY):
+                for I in range(NUM_NY):
                     ARR_OUT[J][I] = self.mask_dtm(ARR_IN[J][I], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE, ARR_STR_DTM=ARR_STR_DTM)
         else:
-            NUM_ARR_NX = len(ARR_IN)
-            ARR_OUT = [0 for n in range(NUM_ARR_NX)]
-            for N in range(NUM_ARR_NX):
+            NUM_NX = len(ARR_IN)
+            ARR_OUT = [0 for n in range(NUM_NX)]
+            for N in range(NUM_NX):
                 ARR_OUT[N] = self.mask_dtm(ARR_IN[N], ARR_NUM_DTM=ARR_NUM_DTM, ARR_NUM_DTM_RANGE=ARR_NUM_DTM_RANGE, ARR_STR_DTM=ARR_STR_DTM)
         return ARR_OUT
 
