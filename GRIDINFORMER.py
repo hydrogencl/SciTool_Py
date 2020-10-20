@@ -690,40 +690,60 @@ class TOOLS:
 
 class MPI_TOOLS:
 
-    def __init__(self):
-        NUM_RANK = 1
-        NUM_SIZE = 1
+    def __init__(self, MPI_SIZE=1,\
+                 NUM_NX_END=1, NUM_NY_END=1, NUM_NX_START=0, NUM_NY_START=0, NUM_NX_CORES=1 ,\
+                 NUM_NX_TOTAL=1, NUM_NY_TOTAL=1 ):
 
-    def CPU_GEOMETRY_2D(NY_SIZE, NX_SIZE, NX_CORES=1, NY_CORES=1):
-        NUM_SIZE    = NX_CORES *  NY_CORES
-        NUM_NX_LAST = NX_SIZE  %  NX_CORES
-        NUM_NY_LAST = NY_SIZE  %  NY_CORES
+        """ END number follow the python philisophy: End number is not included in the list """
+ 
+        self.NUM_SIZE     = MPI_SIZE
+        self.NUM_NX_START = NUM_NX_START
+        self.NUM_NY_START = NUM_NY_START
+        self.NUM_NX_SIZE  = NUM_NX_END - NUM_NX_START
+        self.NUM_NY_SIZE  = NUM_NX_END - NUM_NX_START
+        self.NUM_NX_CORES = NUM_NX_CORES
+        self.NUM_NY_CORES = int(self.NUM_SIZE / NUM_NX_CORES)
+        self.ARR_RANK_DESIGN = [ {} for n in range(self.NUM_SIZE)]
+    def CPU_GEOMETRY_2D(self):
+
+        NUM_NX_LAST = self.NUM_NX_SIZE  %  self.NUM_NX_CORES
+        NUM_NY_LAST = self.NUM_NY_SIZE  %  self.NUM_NY_CORES
     
-        NUM_NX_DIFF = int((NX_SIZE - NUM_NX_LAST) / NX_CORES )
-        NUM_NY_DIFF = int((NY_SIZE - NUM_NY_LAST) / NY_CORES )
+        NUM_NX_DIFF = int((self.NUM_NX_SIZE - NUM_NX_LAST) / self.NUM_NX_CORES )
+        NUM_NY_DIFF = int((self.NUM_NY_SIZE - NUM_NY_LAST) / self.NUM_NY_CORES )
     
         IND_RANK = 0
-        ARR_RANK_DESIGN = [ 0 for n in range(NUM_SIZE)]
-        for ny in range(NY_CORES):
-            for nx in range(NX_CORES):
-                NUM_RANK = ny * NX_CORES + nx
+        # ARR_RANK_DESIGN = [ 0 for n in range(self.NUM_SIZE)]
+        for ny in range(self.NUM_NY_CORES):
+            for nx in range(self.NUM_NX_CORES):
+                NUM_RANK = ny * self.NUM_NX_CORES + nx
                 DIC_IN   = {"INDEX_IN": NUM_RANK, "NX_START": 0, "NY_START": 0, "NX_END": 0, "NY_END": 0  }
-                if ny < NY_CORES-1:
-                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF
+                if ny < self.NUM_NY_CORES-1:
+                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF + self.NUM_NY_START
                     DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF
                 else:
-                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF
+                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF + self.NUM_NY_START
                     DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF + NUM_NY_LAST
-                if nx < NX_CORES-1:
-                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF
+                if nx < self.NUM_NX_CORES-1:
+                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF + self.NUM_NX_START
                     DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF
                 else:
-                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF  
+                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF + self.NUM_NX_START
                     DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF + NUM_NX_LAST
-                ARR_RANK_DESIGN[NUM_RANK] = DIC_IN
-        return ARR_RANK_DESIGN 
+                self.ARR_RANK_DESIGN[NUM_RANK] = DIC_IN
 
+    def CPU_MAP(self ):
+        ARR_CPU_MAP = [ [ NP.nan for i in range(200)] for j in range(250) ]
+        for RANK in range(len(ARR_RANK_DESIGN)):
+            print("DEAL WITH {0:d} {1:d}".format(RANK, ARR_RANK_DESIGN[RANK]["INDEX_IN"] ))
+            for jj in range(ARR_RANK_DESIGN[RANK]["NY_START"], ARR_RANK_DESIGN[RANK]["NY_END"]):
+                for ii in range(ARR_RANK_DESIGN[RANK]["NX_START"], ARR_RANK_DESIGN[RANK]["NX_END"]):
+                    ARR_CPU_MAP[jj][ii] = ARR_RANK_DESIGN[RANK]["INDEX_IN"]  
+        return MAP_CPU
 
+    def GATHER_ARR(self, ARR_IN):
+
+        return ARR_IN
     
 class GEO_TOOLS:
     def __init__(self):
