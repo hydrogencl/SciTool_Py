@@ -4,10 +4,12 @@ import time
 try:
     import netCDF4 as NC
 except:
-    print("Do not import netCDF4")
+    print("You no install netCDF4 for python")
+    print("So I do not import netCDF4")
 try:
     import numpy as NP
 except:
+    print("You no install numpy")
     print("Do not import numpy")
 
 class GRIDINFORMATER:
