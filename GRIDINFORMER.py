@@ -1,4 +1,4 @@
-import math,re,sys
+import math,re,sys,os,time
 import random as RD
 import time
 try:
@@ -430,7 +430,7 @@ class GRIDINFORMATER:
             NCDF4_DATA.close()    
 
     def create_resample_map(self, ARR_REFERENCE_MAP=[], ARR_VARIABLES=["Value"], ARR_GRID_IN=[],\
-                             IF_PB=False, NUM_NT=0, NUM_NX=0, NUM_NY=0):
+                             IF_PB=False, NUM_NT=0, NUM_NX=0, NUM_NY=0, NUM_NULL=-9999.999):
         if NUM_NT == 0:
             NUM_NT = self.NUM_NT
         if NUM_NX == 0:
@@ -458,12 +458,11 @@ class GRIDINFORMATER:
         else:
             if ARR_GRID_IN == []: ARR_GRID_IN = self.ARR_GRID
             self.ARR_RESAMPLE_OUT = [ {} for n in range(NUM_NX * NUM_NY)]
-            #print("\n")
-            #print("RS_MAP: {0:d}".format(len(self.ARR_RESAMPLE_OUT)))
             for IND in range(len(self.ARR_RESAMPLE_OUT)):
                 for VAR in ARR_VARIABLES:
                     self.ARR_RESAMPLE_OUT[IND][VAR] = [{"VALUE" : []} for T in range(NUM_NT) ]
-            for IND in range(len(ARR_REFERENCE_MAP)):
+            #for IND in range(len(ARR_REFERENCE_MAP)):
+            for IND in range(len(ARR_GRID_IN)):
                 R_IND = ARR_REFERENCE_MAP[IND]["INDEX_REF"] 
                 R_J   = ARR_REFERENCE_MAP[IND]["INDEX_REF_J"]
                 R_I   = ARR_REFERENCE_MAP[IND]["INDEX_REF_I"]
@@ -471,7 +470,9 @@ class GRIDINFORMATER:
                 if R_IND != None:
                     for VAR in ARR_VARIABLES:
                         for T in range(NUM_NT):
-                            self.ARR_RESAMPLE_OUT[R_IND][VAR][T]["VALUE"].append(ARR_GRID_IN[IND][VAR][T]["VALUE"])
+                            #print("R_IND:{0:d}, T:{1:d}, IND:{2:d} ".format(R_IND, T, IND))
+                            NUM_VAL_IN = ARR_GRID_IN[IND][VAR][T]["VALUE"]
+                            self.ARR_RESAMPLE_OUT[R_IND][VAR][T]["VALUE"].append(NUM_VAL_IN)
                     self.ARR_RESAMPLE_OUT[R_IND]["INDEX"]         = ARR_REFERENCE_MAP[IND]["INDEX_REF"] 
                     self.ARR_RESAMPLE_OUT[R_IND]["INDEX_J"]       = ARR_REFERENCE_MAP[IND]["INDEX_REF_J"]
                     self.ARR_RESAMPLE_OUT[R_IND]["INDEX_I"]       = ARR_REFERENCE_MAP[IND]["INDEX_REF_I"]
@@ -481,7 +482,7 @@ class GRIDINFORMATER:
                 if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([IND], [len(ARR_GRID_IN)]), STR_DES="RESAMPLING PROGRESS")
                 
     def cal_resample_map(self, ARR_VARIABLES, ARR_GRID_IN=[], NUM_NT=0, IF_PB=False, \
-                         DIC_PERCENTILE={ "P05": 0.05, "P10": 0.1, "P25": 0.25, "P75": 0.75, "P90": 0.90, "P95": 0.95}):
+                         DIC_PERCENTILE={ "P05": 0.05, "P10": 0.1, "P25": 0.25, "P75": 0.75, "P90": 0.90, "P95": 0.95}, NUM_NULL=-9999.999):
         if NUM_NT == 0:
             NUM_NT = self.NUM_NT
         NUM_RS_OUT_LEN = len(self.ARR_RESAMPLE_OUT)
@@ -508,7 +509,7 @@ class GRIDINFORMATER:
                             self.ARR_RESAMPLE_OUT[IND][VAR][T][STVA]  = ARR_IN[ round(NUM_ARR_LEN * DIC_PERCENTILE[STVA])-1]
                         for VAL in ARR_IN:
                             NUM_ARR_S2SUM += (VAL - NUM_ARR_MEAN)**2
-                        self.ARR_RESAMPLE_OUT[IND][VAR][T]["STD"]     =  (NUM_ARR_S2SUM / (NUM_ARR_LEN-1))**0.5
+                        self.ARR_RESAMPLE_OUT[IND][VAR][T]["STD"]     =  (NUM_ARR_S2SUM / max(1, NUM_ARR_LEN-1))**0.5
             if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([IND], [NUM_RS_OUT_LEN]), STR_DES="RESAMPLING CALCULATION")            
 
     def convert_grid2map(self, ARR_GRID_IN, STR_VAR, STR_VAR_TYPE="", NX=0, NY=0, NT=0, IF_PB=False, NC_TYPE=""):
@@ -690,20 +691,22 @@ class TOOLS:
 
 class MPI_TOOLS:
 
-    def __init__(self, MPI_SIZE=1,\
+    def __init__(self, MPI_SIZE=1, MPI_RANK=0,\
                  NUM_NX_END=1, NUM_NY_END=1, NUM_NX_START=0, NUM_NY_START=0, NUM_NX_CORES=1 ,\
                  NUM_NX_TOTAL=1, NUM_NY_TOTAL=1 ):
 
         """ END number follow the python philisophy: End number is not included in the list """
  
         self.NUM_SIZE     = MPI_SIZE
+        self.NUM_RANK     = MPI_RANK
         self.NUM_NX_START = NUM_NX_START
         self.NUM_NY_START = NUM_NY_START
         self.NUM_NX_SIZE  = NUM_NX_END - NUM_NX_START
-        self.NUM_NY_SIZE  = NUM_NX_END - NUM_NX_START
+        self.NUM_NY_SIZE  = NUM_NY_END - NUM_NY_START
         self.NUM_NX_CORES = NUM_NX_CORES
-        self.NUM_NY_CORES = int(self.NUM_SIZE / NUM_NX_CORES)
+        self.NUM_NY_CORES = max(1, int(self.NUM_SIZE / NUM_NX_CORES))
         self.ARR_RANK_DESIGN = [ {} for n in range(self.NUM_SIZE)]
+
     def CPU_GEOMETRY_2D(self):
 
         NUM_NX_LAST = self.NUM_NX_SIZE  %  self.NUM_NX_CORES
@@ -713,27 +716,29 @@ class MPI_TOOLS:
         NUM_NY_DIFF = int((self.NUM_NY_SIZE - NUM_NY_LAST) / self.NUM_NY_CORES )
     
         IND_RANK = 0
-        # ARR_RANK_DESIGN = [ 0 for n in range(self.NUM_SIZE)]
+        ARR_RANK_DESIGN = [ 0 for n in range(self.NUM_SIZE)]
         for ny in range(self.NUM_NY_CORES):
             for nx in range(self.NUM_NX_CORES):
                 NUM_RANK = ny * self.NUM_NX_CORES + nx
                 DIC_IN   = {"INDEX_IN": NUM_RANK, "NX_START": 0, "NY_START": 0, "NX_END": 0, "NY_END": 0  }
                 if ny < self.NUM_NY_CORES-1:
                     DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF + self.NUM_NY_START
-                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF
+                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF + self.NUM_NY_START
                 else:
                     DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF + self.NUM_NY_START
-                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF + NUM_NY_LAST
+                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF + self.NUM_NY_START + NUM_NY_LAST
                 if nx < self.NUM_NX_CORES-1:
                     DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF + self.NUM_NX_START
-                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF
+                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF + self.NUM_NX_START
                 else:
                     DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF + self.NUM_NX_START
-                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF + NUM_NX_LAST
-                self.ARR_RANK_DESIGN[NUM_RANK] = DIC_IN
+                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF + self.NUM_NX_START + NUM_NX_LAST
+                ARR_RANK_DESIGN[NUM_RANK] = DIC_IN
+        self.ARR_RANK_DESIGN = ARR_RANK_DESIGN
+        return ARR_RANK_DESIGN
 
     def CPU_MAP(self ):
-        ARR_CPU_MAP = [ [ NP.nan for i in range(200)] for j in range(250) ]
+        ARR_CPU_MAP = [ [ NP.nan for i in range(self.NUM_NX_TOTAL)] for j in range(self.NUM_NY_TOTAL) ]
         for RANK in range(len(ARR_RANK_DESIGN)):
             print("DEAL WITH {0:d} {1:d}".format(RANK, ARR_RANK_DESIGN[RANK]["INDEX_IN"] ))
             for jj in range(ARR_RANK_DESIGN[RANK]["NY_START"], ARR_RANK_DESIGN[RANK]["NY_END"]):
@@ -741,9 +746,24 @@ class MPI_TOOLS:
                     ARR_CPU_MAP[jj][ii] = ARR_RANK_DESIGN[RANK]["INDEX_IN"]  
         return MAP_CPU
 
-    def GATHER_ARR(self, ARR_IN):
+    def GATHER_ARR_2D(self, ARR_IN, ARR_IN_GATHER, ARR_RANK_DESIGN=[]):
+        if ARR_RANK_DESIGN == []:
+            ARR_RANK_DESIGN = self.ARR_RANK_DESIGN
+        for N in range(1, self.NUM_SIZE):
+            I_STA = ARR_RANK_DESIGN[N]["NX_START"]
+            I_END = ARR_RANK_DESIGN[N]["NX_END"  ]
+            J_STA = ARR_RANK_DESIGN[N]["NY_START"]
+            J_END = ARR_RANK_DESIGN[N]["NY_END"  ]
+            for J in range(J_STA, J_END ):
+                for I in range(I_STA, I_END ):
+                    ARR_IN[J][I] = ARR_IN_GATHER[N][J][I]
 
         return ARR_IN
+
+    def MPI_MESSAGE(self, STR_TEXT=""):
+        TIME_NOW = time.gmtime()
+        print("MPI RANK: {0:5d} @ {1:02d}:{2:02d}:{3:02d} # {4:s}"\
+              .format(self.NUM_RANK, TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec, STR_TEXT ))
     
 class GEO_TOOLS:
     def __init__(self):
@@ -952,4 +972,79 @@ class WRF_HELPER:
             if IF_PB: TOOLS.progress_bar(I/float(NUM_LEN_IN))
         #self.ARR_TIME_PROFILE = ARR_TIME_PROFILE
         return ARR_TIME_PROFILE
+
+class DATA_READER:
+    """
+    The DATA_READER is based on my old work: gridtrans.py. 
+    """
+    def __init__(self, STR_NULL="noData", NUM_NULL=-999.999):
+        self.STR_NULL=STR_NULL
+        self.NUM_NULL=NUM_NULL
+
+    def stripblnk(arr,*num_typ):
+        new_arr=[]
+        for i in arr:
+            if i == "":
+                pass
+            else:
+                if num_typ[0] == 'int':
+                    new_arr.append(int(i))
+                elif num_typ[0] == 'float':
+                    new_arr.append(float(i))
+                elif num_typ[0] == '':
+                    new_arr.append(i)
+                else:
+                    print("WRONG num_typ!")
+        return new_arr
+    
+    def tryopen(sourcefile,ag):
+        try:
+            opf=open(sourcefile,ag)
+            return opf
+        except :
+            print("No such file.")
+            return "error"
+    
+    def READCSV(self, sourcefile):
+        opf    = tryopen(sourcefile,'r')
+        opfchk = tryopen(sourcefile,'r')
+        print("reading source file {0:s}".format(sourcefile))
+        chk_lines = opfchk.readlines()
+        num_totallines = len(chk_lines)
+        ncols = 0
+        num_notnum = 0
+        for n in range(num_totallines):
+            line_in = chk_lines[n]
+            c_first = re.findall(".",line_in.strip())
+            if c_first[0] == "#":
+                num_notnum += 1
+            else:
+                ncols = len( re.split(",",line_in.strip()) )
+                break
+        if ncols == 0:
+            print("something wrong with the input file! (all comments?)")
+        else:
+            del opfchk
+            nrows=num_totallines - num_notnum
+            result_arr=[[self.NUM_NULL for j in range(nrows)] for i in range(ncols)]
+            result_arr_text=[]
+            num_pass = 0
+            for j in range(0,num_totallines):
+                # chk if comment
+                line_in = opf.readline()
+                c_first = re.findall(".",line_in.strip())[0]
+                if c_first == "#":
+                    result_arr_text.append(line_in)
+                    num_pass += 1
+                else:
+                    arr_in = re.split(",",line_in.strip())
+                    for i in range(ncols):
+                        chk_val = arr_in[i]
+                        if chk_val == str_null: 
+                            result_arr[i][j-num_pass] = self.NUM_NULL
+                            print (j,i,chk_val)
+                        else:
+                            result_arr[i][j-num_pass] = float(chk_val)
+        return result_arr,result_arr_text
+
 
