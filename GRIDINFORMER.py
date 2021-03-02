@@ -1009,8 +1009,8 @@ class DATA_READER:
             return "error"
     
     def READCSV(self, sourcefile):
-        opf    = tryopen(sourcefile,'r')
-        opfchk = tryopen(sourcefile,'r')
+        opf    = self.tryopen(sourcefile,'r')
+        opfchk = self.tryopen(sourcefile,'r')
         print("reading source file {0:s}".format(sourcefile))
         chk_lines = opfchk.readlines()
         num_totallines = len(chk_lines)
