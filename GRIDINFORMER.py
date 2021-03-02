@@ -179,6 +179,7 @@ class GRIDINFORMATER:
                         if NUM_CHK_IN_SN == 0: NUM_CHK_IN_SN = (OBJ_R["EDGE"]["E"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"]) *\
                                                              (OBJ_R["EDGE"]["W"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"])
                         if NUM_CHK_IN_EW < 0 and NUM_CHK_IN_SN < 0:
+                            print("Found!")
                             OBJ_ELEMENT = {"INDEX"       : OBJ_G["INDEX"],\
                                            "INDEX_I"     : OBJ_G["INDEX_I"],\
                                            "INDEX_J"     : OBJ_G["INDEX_J"],\
