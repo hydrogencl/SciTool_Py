@@ -160,9 +160,32 @@ class GRIDINFORMATER:
            WARNING: The edge of gridcells may not be included due to the unfinished algorithm
 
         """
-
         self.ARR_REFERENCE_MAP = []
-        if STR_TYPE=="FIX":
+        if STR_TYPE=="GRIDBYGEO":
+            NUM_OBJ_G_LEN = len(MAP_TARGET)
+            for OBJ_G in MAP_TARGET:
+                NUM_G_COOR        = [OBJ_G["CENTER"]["LAT"], OBJ_G["CENTER"]["LON"]]
+                for OBJ_R in MAP_RESAMPLE:
+                    NUM_CHK_IN_EW = (OBJ_R["EDGE"]["E"] - OBJ_G["CENTER"]["LON"]) *\
+                                    (OBJ_R["EDGE"]["W"] - OBJ_G["CENTER"]["LON"])
+                    NUM_CHK_IN_SN = (OBJ_R["EDGE"]["N"] - OBJ_G["CENTER"]["LAT"]) *\
+                                    (OBJ_R["EDGE"]["S"] - OBJ_G["CENTER"]["LAT"])
+                    if NUM_CHK_IN_EW == 0: NUM_CHK_IN_EW = (OBJ_R["EDGE"]["E"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"]) *\
+                                                           (OBJ_R["EDGE"]["W"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"])
+                    if NUM_CHK_IN_SN == 0: NUM_CHK_IN_SN = (OBJ_R["EDGE"]["E"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"]) *\
+                                                           (OBJ_R["EDGE"]["W"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"])
+                    if NUM_CHK_IN_EW < 0 and NUM_CHK_IN_SN < 0:
+                        OBJ_ELEMENT = {"INDEX"       : OBJ_G["INDEX"],\
+                                       "CENTER"      : OBJ_G["CENTER"],\
+                                       "INDEX_REF"   : OBJ_R["INDEX"],\
+                                       "INDEX_REF_I" : OBJ_R["INDEX_I"],\
+                                       "INDEX_REF_J" : OBJ_R["INDEX_J"],\
+                                       "CENTER_REF"  : OBJ_R["CENTER"],\
+                                             }          
+                        self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
+                        break
+                if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([OBJ_G["INDEX"]], [NUM_OBJ_G_LEN]), STR_DES="CREATING REFERENCE MAP")
+        elif STR_TYPE=="FIX":
             NUM_OBJ_G_LEN = len(MAP_TARGET)
             for OBJ_G in MAP_TARGET:
                 NUM_G_COOR    = [OBJ_G["CENTER"]["LAT"], OBJ_G["CENTER"]["LON"]]
@@ -179,7 +202,6 @@ class GRIDINFORMATER:
                         if NUM_CHK_IN_SN == 0: NUM_CHK_IN_SN = (OBJ_R["EDGE"]["E"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"]) *\
                                                              (OBJ_R["EDGE"]["W"] + NUM_SHIFT - OBJ_G["CENTER"]["LON"])
                         if NUM_CHK_IN_EW < 0 and NUM_CHK_IN_SN < 0:
-                            print("Found!")
                             OBJ_ELEMENT = {"INDEX"       : OBJ_G["INDEX"],\
                                            "INDEX_I"     : OBJ_G["INDEX_I"],\
                                            "INDEX_J"     : OBJ_G["INDEX_J"],\
@@ -191,10 +213,6 @@ class GRIDINFORMATER:
                                                  }          
                             self.ARR_REFERENCE_MAP.append(OBJ_ELEMENT)
                             break
-                        #else:
-                        #    print("WE GOT PROBLEM: IND={0:d},".format(OBJ_G["INDEX"])
-                        #    print("NUM_CHK_IN_EW={0:f}".format(NUM_CHK_IN_EW))
-                        #    print("NUM_CHK_IN_SN={0:f}".format(NUM_CHK_IN_SN))
                 if IF_PB: TOOLS.progress_bar(TOOLS.cal_loop_progress([OBJ_G["INDEX"]], [NUM_OBJ_G_LEN]), STR_DES="CREATING REFERENCE MAP")
 
     def export_grid_map(self, ARR_GRID_IN, STR_DIR, STR_FILENAME, ARR_VAR_STR=[],\
@@ -603,6 +621,7 @@ class MATH_TOOLS:
             for i in range(NUM_I):
                 ARR_OUT[j][i] = ARR_IN[j][i][STR_IN]
         return ARR_OUT
+
     def reshape2d(ARR_IN):
         ARR_OUT=[]
         for A in ARR_IN:
@@ -610,12 +629,33 @@ class MATH_TOOLS:
                 ARR_OUT.append(B)
         return ARR_OUT
 
+    def NormalVector( V1, V2):
+        return [(V1[1]*V2[2] - V1[2]*V2[1]), (V1[2]*V2[0] - V1[0]*V2[2]),(V1[0]*V2[1] - V1[1]*V2[0])]  
+    
+    def NVtoPlane( P0, P1, P2):
+        """Input of P should be 3-dimensionals"""
+        V1 = [(P1[0]-P0[0]),(P1[1]-P0[1]),(P1[2]-P0[2])]
+        V2 = [(P2[0]-P0[0]),(P2[1]-P0[1]),(P2[2]-P0[2])]
+        ARR_NV = MATH_TOOLS.NormalVector(V1, V2)
+        D = ARR_NV[0] * P0[0] +  ARR_NV[1] * P0[1] + ARR_NV[2] * P0[2]
+        return ARR_NV[0],ARR_NV[1],ARR_NV[2],D
+        
+    def FindZatP3( P0, P1, P2, P3):
+        """ input of P: (X,Y,Z); but P3 is (X,Y) only """
+        A,B,C,D = MATH_TOOLS.NVtoPlane(P0, P1, P2)
+        return (D-A*P3[0] - B*P3[1])/float(C)
+
+
+
 class TOOLS:
     """ TOOLS is contains:
         fix_ind
         progress_bar
         cal_progrss
     """
+    ARR_HOY      = [0, 744, 1416, 2160, 2880, 3624, 4344, 5088, 5832, 6552, 7296, 8016, 8760] 
+    ARR_HOY_LEAP = [0, 744, 1440, 2184, 2904, 3648, 4368, 5112, 5856, 6576, 7320, 8040, 8784]
+
     def fix_ind(IND_IN, IND_J, IND_I, ARR_XRANGE=[], ARR_YRANGE=[], NX=0, NY=0):
         NUM_DY   = ARR_YRANGE[0]
         NUM_NX_F = ARR_XRANGE[0]
@@ -983,7 +1023,7 @@ class DATA_READER:
     def __init__(self, STR_NULL="noData", NUM_NULL=-999.999):
         self.STR_NULL=STR_NULL
         self.NUM_NULL=NUM_NULL
-
+        
     def stripblnk(arr,*num_typ):
         new_arr=[]
         for i in arr:
@@ -1000,7 +1040,7 @@ class DATA_READER:
                     print("WRONG num_typ!")
         return new_arr
     
-    def tryopen(sourcefile,ag):
+    def tryopen(self, sourcefile, ag):
         try:
             opf=open(sourcefile,ag)
             return opf
@@ -1029,11 +1069,12 @@ class DATA_READER:
         else:
             del opfchk
             nrows=num_totallines - num_notnum
-            result_arr=[[self.NUM_NULL for j in range(nrows)] for i in range(ncols)]
+            result_arr=[[self.NUM_NULL for j in range(ncols)] for i in range(nrows)]
             result_arr_text=[]
             num_pass = 0
             for j in range(0,num_totallines):
                 # chk if comment
+                #print (j,i,chk_val)
                 line_in = opf.readline()
                 c_first = re.findall(".",line_in.strip())[0]
                 if c_first == "#":
@@ -1043,11 +1084,10 @@ class DATA_READER:
                     arr_in = re.split(",",line_in.strip())
                     for i in range(ncols):
                         chk_val = arr_in[i]
-                        if chk_val == str_null: 
-                            result_arr[i][j-num_pass] = self.NUM_NULL
-                            print (j,i,chk_val)
+                        if chk_val == self.STR_NULL: 
+                            result_arr[j-num_pass][i] = self.NUM_NULL
                         else:
-                            result_arr[i][j-num_pass] = float(chk_val)
+                            result_arr[j-num_pass][i] = float(chk_val)
         return result_arr,result_arr_text
 
 
