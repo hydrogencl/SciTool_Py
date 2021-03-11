@@ -646,6 +646,13 @@ class MATH_TOOLS:
         return (D-A*P3[0] - B*P3[1])/float(C)
 
     def cal_kappa(ARR_IN, NUM_n=0, NUM_N=0, NUM_k=0):
+        """ Fleiss' kappa
+            Mustt input with ARR_IN in the following format:
+            ARR_IN = [ [ NUM for k in range(catalogue)] for N in range(Subjects)]
+            Additional parameters: NUM_n is the number of raters (e.g. sim and obs results)
+            Additional parameters: NUM_N is the number of subjects (e.g the outputs
+            Additional parameters: NUM_k is the number of catalogue (e.g. results )
+        """
         if NUM_N == 0:
             NUM_N = len(ARR_IN)
         if NUM_n == 0:
