@@ -587,6 +587,42 @@ class MATH_TOOLS:
         standard_dev: The Standard deviation
     """
 
+    def cal_kappa(ARR_IN, NUM_n=0, NUM_N=0, NUM_k=0):
+        """ Fleiss' kappa
+            Mustt input with ARR_IN in the following format:
+            ARR_IN = [ [ NUM for k in range(catalogue)] for N in range(Subjects)]
+            Additional parameters: NUM_n is the number of raters (e.g. sim and obs results)
+            Additional parameters: NUM_N is the number of subjects (e.g the outputs
+            Additional parameters: NUM_k is the number of catalogue (e.g. results )
+        """
+        if NUM_N == 0:
+            NUM_N = len(ARR_IN)
+        if NUM_n == 0:
+            NUM_n = sum(ARR_IN[0])
+        if NUM_k == 0:
+            NUM_k = len(ARR_IN[0])
+        ARR_p_out = [ 0 for n in range(NUM_k)]
+        ARR_P_OUT = [ 0 for n in range(NUM_N)]
+
+        for N in range(NUM_N):
+            for k in range(NUM_k):
+                ARR_p_out[k] += ARR_IN[N][k]
+                ARR_P_OUT[N] += ARR_IN[N][k] ** 2        
+            ARR_P_OUT[N] -= NUM_n
+            ARR_P_OUT[N]  = ARR_P_OUT[N] * (1./(NUM_n *(NUM_n - 1)))
+        for k in range(NUM_k):
+            ARR_p_out[k] = ARR_p_out[k] / (NUM_N * NUM_n)
+        NUM_P_BAR = 0
+        for N in range(NUM_N):
+            NUM_P_BAR += ARR_P_OUT[N]
+        NUM_P_BAR = NUM_P_BAR / float(NUM_N)
+
+        NUM_p_bar = 0
+        for k in ARR_p_out:
+            NUM_p_bar += k **2
+
+        return (NUM_P_BAR - NUM_p_bar) / (1 - NUM_p_bar)
+
     def gau_kde(ARR_IN_X, ARR_IN_I, NUM_BW=0.1  ):
         NUM_SUM = 0.
         NUM_LENG = len(ARR_IN_X)
