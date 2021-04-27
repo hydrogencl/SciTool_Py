@@ -788,30 +788,35 @@ class MPI_TOOLS:
 
     def CPU_GEOMETRY_2D(self):
 
-        NUM_NX_LAST = self.NUM_NX_SIZE  %  self.NUM_NX_CORES
-        NUM_NY_LAST = self.NUM_NY_SIZE  %  self.NUM_NY_CORES
+        NUM_NX_REMAIN = self.NUM_NX_SIZE  %  self.NUM_NX_CORES
+        NUM_NY_REMAIN = self.NUM_NY_SIZE  %  self.NUM_NY_CORES
     
-        NUM_NX_DIFF = int((self.NUM_NX_SIZE - NUM_NX_LAST) / self.NUM_NX_CORES )
-        NUM_NY_DIFF = int((self.NUM_NY_SIZE - NUM_NY_LAST) / self.NUM_NY_CORES )
-    
+        NUM_NX_DIFF   = int((self.NUM_NX_SIZE - NUM_NX_REMAIN) / self.NUM_NX_CORES  )
+        NUM_NY_DIFF   = int((self.NUM_NY_SIZE - NUM_NY_REMAIN) / self.NUM_NY_CORES  )
+   
+        NUM_NY_DIFF_P1 = NUM_NY_DIFF + 1 
+        NUM_NX_DIFF_P1 = NUM_NX_DIFF + 1
+
         IND_RANK = 0
         ARR_RANK_DESIGN = [ 0 for n in range(self.NUM_SIZE)]
         for ny in range(self.NUM_NY_CORES):
             for nx in range(self.NUM_NX_CORES):
                 NUM_RANK = ny * self.NUM_NX_CORES + nx
                 DIC_IN   = {"INDEX_IN": NUM_RANK, "NX_START": 0, "NY_START": 0, "NX_END": 0, "NY_END": 0  }
-                if ny < self.NUM_NY_CORES-1:
-                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF + self.NUM_NY_START
-                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF + self.NUM_NY_START
+                if ny < NUM_NY_REMAIN: 
+                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF_P1 + self.NUM_NY_START
+                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF_P1 + self.NUM_NY_START
                 else:
-                    DIC_IN["NY_START"] = (ny + 0) * NUM_NY_DIFF + self.NUM_NY_START
-                    DIC_IN["NY_END"  ] = (ny + 1) * NUM_NY_DIFF + self.NUM_NY_START + NUM_NY_LAST
-                if nx < self.NUM_NX_CORES-1:
-                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF + self.NUM_NX_START
-                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF + self.NUM_NX_START
+                    DIC_IN["NY_START"] = (ny - NUM_NY_REMAIN + 0) * NUM_NY_DIFF + NUM_NY_REMAIN * NUM_NY_DIFF_P1 + self.NUM_NY_START
+                    DIC_IN["NY_END"  ] = (ny - NUM_NY_REMAIN + 1) * NUM_NY_DIFF + NUM_NY_REMAIN * NUM_NY_DIFF_P1 + self.NUM_NY_START
+
+                if nx < NUM_NX_REMAIN:
+                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF_P1 + self.NUM_NX_START
+                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF_P1 + self.NUM_NX_START
                 else:
-                    DIC_IN["NX_START"] = (nx + 0) * NUM_NX_DIFF + self.NUM_NX_START
-                    DIC_IN["NX_END"  ] = (nx + 1) * NUM_NX_DIFF + self.NUM_NX_START + NUM_NX_LAST
+                    DIC_IN["NX_START"] = (nx - NUM_NX_REMAIN + 0) * NUM_NX_DIFF + NUM_NX_REMAIN * NUM_NX_DIFF_P1 + self.NUM_NX_START
+                    DIC_IN["NX_END"  ] = (nx - NUM_NX_REMAIN + 1) * NUM_NX_DIFF + NUM_NX_REMAIN * NUM_NX_DIFF_P1 + self.NUM_NX_START
+
                 ARR_RANK_DESIGN[NUM_RANK] = DIC_IN
         self.ARR_RANK_DESIGN = ARR_RANK_DESIGN
         return ARR_RANK_DESIGN
