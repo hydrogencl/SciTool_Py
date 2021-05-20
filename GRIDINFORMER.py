@@ -586,6 +586,40 @@ class MATH_TOOLS:
         gau_kde: kernel density estimator by Gaussian Function
         standard_dev: The Standard deviation
     """
+    def cal_modelperform (arr_obs , arr_sim , num_empty=-999.999):
+        # Based on Vazquez et al. 2002 (Hydrol. Process.)
+        num_arr = len(arr_obs)
+        num_n_total = num_arr
+        num_sum = 0
+        num_obs_sum = 0
+        if num_n_total == 0:
+            EF = 0.0
+            CD = 0.0
+            RRMSE = 0.0
+        else:
+            for n in range( num_arr ):
+                if arr_obs[n] == num_empty:
+                    num_n_total = num_n_total - 1
+                else:
+                    num_sum = num_sum + ( arr_sim[n] - arr_obs[n] )    ** 2
+                    num_obs_sum = num_obs_sum +    arr_obs[n]
+            RRMSE = ( num_sum / num_n_total ) ** 0.5 *    ( num_n_total / num_obs_sum )
+            obs_avg = num_obs_sum / num_n_total
+            num_n_total = num_arr
+            oo_sum = 0
+            po_sum = 0
+            for nn in range( num_arr ):
+                if arr_obs[nn] == num_empty:
+                    num_n_total = num_n_total - 1
+                else:
+                    oo_sum = oo_sum + ( arr_obs[nn] - obs_avg )     ** 2
+                    po_sum = po_sum + ( arr_sim[nn] - arr_obs[nn] ) ** 2
+            EF = ( oo_sum - po_sum ) / oo_sum
+            CD = oo_sum / po_sum
+        return RRMSE,EF,CD, num_arr
+
+
+
 
     def cal_kappa(ARR_IN, NUM_n=0, NUM_N=0, NUM_k=0):
         """ Fleiss' kappa
