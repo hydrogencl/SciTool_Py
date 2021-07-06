@@ -45,7 +45,8 @@ class GRIDINFORMATER:
         
         self.ARR_LAT  = ARR_LAT
         self.ARR_LON  = ARR_LON
-       
+        self.ARR_RESAMPLE_MAP_PARA = { "EDGE": {"N" :-999, "S":-999, "E":-999, "W":-999 } }
+
         if len(ARR_LAT) != 0 and len(ARR_LON) != 0:
             NUM_ARR_NY_T1 = len(ARR_LAT)
             NUM_ARR_NY_T2 = len(ARR_LON)
@@ -189,8 +190,15 @@ class GRIDINFORMATER:
             NUM_OBJ_G_LEN = len(MAP_TARGET)
             for OBJ_G in MAP_TARGET:
                 NUM_G_COOR    = [OBJ_G["CENTER"]["LAT"], OBJ_G["CENTER"]["LON"]]
-                NUM_CHK_EW_IN = (NUM_G_COOR[1] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["W"] ) * ( NUM_G_COOR[1] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["E"] )
-                NUM_CHK_SN_IN = (NUM_G_COOR[0] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["S"] ) * ( NUM_G_COOR[0] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["N"] )
+                if self.ARR_RESAMPLE_MAP_PARA["EDGE"]["W"] == -999 or self.ARR_RESAMPLE_MAP_PARA["EDGE"]["E"] == -999:
+                    NUM_CHK_EW_IN = -1
+                else:
+                    NUM_CHK_EW_IN = (NUM_G_COOR[1] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["W"] ) * ( NUM_G_COOR[1] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["E"] )
+
+                if self.ARR_RESAMPLE_MAP_PARA["EDGE"]["N"] == -999 or self.ARR_RESAMPLE_MAP_PARA["EDGE"]["S"] == -999:
+                    NUM_CHK_SN_IN = -1
+                else:
+                    NUM_CHK_SN_IN = (NUM_G_COOR[0] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["S"] ) * ( NUM_G_COOR[0] - self.ARR_RESAMPLE_MAP_PARA["EDGE"]["N"] )
                 if NUM_CHK_EW_IN < 0 and NUM_CHK_SN_IN < 0:            
                     for OBJ_R in MAP_RESAMPLE:
                         NUM_CHK_IN_EW = (OBJ_R["EDGE"]["E"] - OBJ_G["CENTER"]["LON"]) *\
@@ -329,32 +337,45 @@ class GRIDINFORMATER:
                 if IF_PB: TOOLS.progress_bar((IND+1)/(NUM_NX*NUM_NY), STR_DES="WRITING PROGRESS")
         NCDF4_DATA.close()
 
-    def export_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4", IF_PB=False ):
+    def export_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4", IF_PB=False, IF_PARALLEL=False ):
         TIME_NOW = time.gmtime()
         self.STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday) 
         self.STR_TIME_NOW = "{0:02d}:{1:02d}:{2:02d}".format(TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec)
-
+        STR_INPUT_FILENAME = "{0:s}/{1:s}".format(STR_DIR, STR_FILENAME)
         if STR_TYPE == "netCDF4":
-            NCDF4_DATA = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILENAME), 'w', format="NETCDF4")
-            # CREATE ATTRIBUTEs:
-            NCDF4_DATA.description = \
-            "The netCDF4 version of reference map which contains grid information for resampling"
-            NCDF4_DATA.history = "Create on {0:s} at {1:s}".format(self.STR_DATE_NOW, self.STR_TIME_NOW)
-            
-            # CREATE DIMENSIONs:
-            NCDF4_DATA.createDimension("Y",self.NUM_NY)
-            NCDF4_DATA.createDimension("X",self.NUM_NX)
-            # CREATE_VARIABLES:
-            INDEX          = NCDF4_DATA.createVariable("INDEX",          "i4", ("Y", "X"))
-            INDEX_J        = NCDF4_DATA.createVariable("INDEX_J",        "i4", ("Y", "X"))
-            INDEX_I        = NCDF4_DATA.createVariable("INDEX_I",        "i4", ("Y", "X"))
-            CENTER_LON     = NCDF4_DATA.createVariable("CENTER_LON",     "f8", ("Y", "X"))
-            CENTER_LAT     = NCDF4_DATA.createVariable("CENTER_LAT",     "f8", ("Y", "X"))
-            INDEX_REF      = NCDF4_DATA.createVariable("INDEX_REF",      "i4", ("Y", "X"))
-            INDEX_REF_J    = NCDF4_DATA.createVariable("INDEX_REF_J",    "i4", ("Y", "X"))
-            INDEX_REF_I    = NCDF4_DATA.createVariable("INDEX_REF_I",    "i4", ("Y", "X"))
-            CENTER_REF_LON = NCDF4_DATA.createVariable("CENTER_REF_LON", "f8", ("Y", "X"))
-            CENTER_REF_LAT = NCDF4_DATA.createVariable("CENTER_REF_LAT", "f8", ("Y", "X"))
+            IF_FILECHK = os.path.exists(STR_INPUT_FILENAME) 
+            if IF_FILECHK:
+                NCDF4_DATA = NC.Dataset(STR_INPUT_FILENAME, 'a', format="NETCDF4", parallel=IF_PARALLEL)
+                INDEX          = NCDF4_DATA.variables["INDEX"          ]
+                INDEX_J        = NCDF4_DATA.variables["INDEX_J"        ]
+                INDEX_I        = NCDF4_DATA.variables["INDEX_I"        ]
+                CENTER_LON     = NCDF4_DATA.variables["CENTER_LON"     ]
+                CENTER_LAT     = NCDF4_DATA.variables["CENTER_LAT"     ]
+                INDEX_REF      = NCDF4_DATA.variables["INDEX_REF"      ]
+                INDEX_REF_J    = NCDF4_DATA.variables["INDEX_REF_J"    ]
+                INDEX_REF_I    = NCDF4_DATA.variables["INDEX_REF_I"    ]
+                CENTER_REF_LON = NCDF4_DATA.variables["CENTER_REF_LON" ]
+                CENTER_REF_LAT = NCDF4_DATA.variables["CENTER_REF_LAT" ]
+            else: 
+                NCDF4_DATA = NC.Dataset(STR_INPUT_FILENAME, 'w', format="NETCDF4", parallel=IF_PARALLEL)
+                # CREATE ATTRIBUTEs:
+                NCDF4_DATA.description = \
+                "The netCDF4 version of reference map which contains grid information for resampling"
+                NCDF4_DATA.history = "Create on {0:s} at {1:s}".format(self.STR_DATE_NOW, self.STR_TIME_NOW)
+                # CREATE DIMENSIONs:
+                NCDF4_DATA.createDimension("Y",self.NUM_NY)
+                NCDF4_DATA.createDimension("X",self.NUM_NX)
+                # CREATE_VARIABLES:
+                INDEX          = NCDF4_DATA.createVariable("INDEX",          "i4", ("Y", "X"))
+                INDEX_J        = NCDF4_DATA.createVariable("INDEX_J",        "i4", ("Y", "X"))
+                INDEX_I        = NCDF4_DATA.createVariable("INDEX_I",        "i4", ("Y", "X"))
+                CENTER_LON     = NCDF4_DATA.createVariable("CENTER_LON",     "f8", ("Y", "X"))
+                CENTER_LAT     = NCDF4_DATA.createVariable("CENTER_LAT",     "f8", ("Y", "X"))
+                INDEX_REF      = NCDF4_DATA.createVariable("INDEX_REF",      "i4", ("Y", "X"))
+                INDEX_REF_J    = NCDF4_DATA.createVariable("INDEX_REF_J",    "i4", ("Y", "X"))
+                INDEX_REF_I    = NCDF4_DATA.createVariable("INDEX_REF_I",    "i4", ("Y", "X"))
+                CENTER_REF_LON = NCDF4_DATA.createVariable("CENTER_REF_LON", "f8", ("Y", "X"))
+                CENTER_REF_LAT = NCDF4_DATA.createVariable("CENTER_REF_LAT", "f8", ("Y", "X"))
             NUM_TOTAL_OBJ = len(self.ARR_REFERENCE_MAP)
             NUM_MAX_I     = self.NUM_NX
             for OBJ in self.ARR_REFERENCE_MAP:
