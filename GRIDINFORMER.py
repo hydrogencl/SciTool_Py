@@ -31,7 +31,6 @@ class GRIDINFORMATER:
     ARR_RESAMPLE_X_LIM = []
     ARR_RESAMPLE_Y_LIM = []
 
-
     # FROM WRF: module_cam_shr_const_mod.f90
     NUM_CONST_EARTH_R = 6.37122E6 
     NUM_CONST_PI      = 3.14159265358979323846
@@ -592,28 +591,34 @@ class MATH_TOOLS:
         num_n_total = num_arr
         num_sum = 0
         num_obs_sum = 0
+    
+        for n in range( num_arr ):
+            if not math.isnan(arr_obs[n]) and arr_obs[0] != num_empty:
+                num_sum = num_sum + ( arr_sim[n] - arr_obs[n] )    ** 2
+                num_obs_sum = num_obs_sum +    arr_obs[n]
+            else:
+                num_n_total += -1
+        if num_n_total == 0 or num_obs_sum == 0:
+            RRMSE   = 0.0
+            obs_avg = 0.0
+        else:
+            RRMSE = ( num_sum / num_n_total ) ** 0.5 *    ( num_n_total / num_obs_sum )
+            obs_avg = num_obs_sum / num_n_total
+    
+        num_n_total = num_arr
+        oo_sum = 0
+        po_sum = 0
+        for nn in range( num_arr ):
+            if arr_obs[nn] != num_empty and not math.isnan(arr_obs[nn]):
+                oo_sum = oo_sum + ( arr_obs[nn] - obs_avg )     ** 2
+                po_sum = po_sum + ( arr_sim[nn] - arr_obs[nn] ) ** 2
+            else:
+                num_n_total = num_n_total - 1
+    
         if num_n_total == 0:
             EF = 0.0
             CD = 0.0
-            RRMSE = 0.0
         else:
-            for n in range( num_arr ):
-                if arr_obs[n] == num_empty:
-                    num_n_total = num_n_total - 1
-                else:
-                    num_sum = num_sum + ( arr_sim[n] - arr_obs[n] )    ** 2
-                    num_obs_sum = num_obs_sum +    arr_obs[n]
-            RRMSE = ( num_sum / num_n_total ) ** 0.5 *    ( num_n_total / num_obs_sum )
-            obs_avg = num_obs_sum / num_n_total
-            num_n_total = num_arr
-            oo_sum = 0
-            po_sum = 0
-            for nn in range( num_arr ):
-                if arr_obs[nn] == num_empty:
-                    num_n_total = num_n_total - 1
-                else:
-                    oo_sum = oo_sum + ( arr_obs[nn] - obs_avg )     ** 2
-                    po_sum = po_sum + ( arr_sim[nn] - arr_obs[nn] ) ** 2
             EF = ( oo_sum - po_sum ) / oo_sum
             CD = oo_sum / po_sum
         return RRMSE,EF,CD, num_arr
