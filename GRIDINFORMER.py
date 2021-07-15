@@ -733,11 +733,13 @@ class TOOLS:
     ARR_HOY_LEAP = [0, 744, 1440, 2184, 2904, 3648, 4368, 5112, 5856, 6576, 7320, 8040, 8784]
 
     def DATETIME2HOY(ARR_TIME, ARR_HOY_IN=[]):
-    if math.fmod(ARR_TIME[0], 4) == 0:
-        ARR_HOY_IN = self.ARR_HOY_LEAP
-    else:
-        ARR_HOY_IN = self.ARR_HOY
-    return ARR_HOY_IN[ARR_TIME[1]-1] + (ARR_TIME[2]-1)*24 + ARR_TIME[3]
+        if math.fmod(ARR_TIME[0], 4) == 0 and len(ARR_HOY_IN) == 0:
+            ARR_HOY_IN = [0, 744, 1440, 2184, 2904, 3648, 4368, 5112, 5856, 6576, 7320, 8040, 8784]
+        elif math.fmod(ARR_TIME[0], 4) != 0 and len(ARR_HOY_IN) == 0:
+            ARR_HOY_IN = [0, 744, 1416, 2160, 2880, 3624, 4344, 5088, 5832, 6552, 7296, 8016, 8760]
+        else:
+            ARR_HOY_IN = ARR_HOY_IN 
+        return ARR_HOY_IN[ARR_TIME[1]-1] + (ARR_TIME[2]-1)*24 + ARR_TIME[3]
 
     def timestamp(STR_IN=""):
         print("{0:04d}-{1:02d}-{2:02d}_{3:02d}:{4:02d}:{5:02d} {6:s}".format(time.gmtime().tm_year, time.gmtime().tm_mon, time.gmtime().tm_mday,\
