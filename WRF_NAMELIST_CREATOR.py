@@ -429,11 +429,10 @@ class namelist_creater:
     def create_a_namelist(self):
         if self.IF_ensemble_run :
             self.FILE     = open("{0:s}/{1:s}{2:05d}".format(self.STR_DIR, self.STR_namelist, self.NUM_ensemble_member), "w")
-            print("starting creating the namelist: {0:s}{1:05d}".format(self.STR_namelist, self.NUM_ensemble_member))
         else: 
             self.FILE     = open("{0:s}/{1:s}".format(self.STR_DIR, self.STR_namelist), "w")
-            print("starting creating the namelist: {0:s}".format(self.STR_namelist))
-        
+
+        print("starting creating the namelist: {0:s}".format(self.STR_namelist))
         self.FILE.write("&time_control\n")
         self.write_namelist(self.DIC_time_control_common_para, self.ARR_time_control)
         self.FILE.write("/\n")
