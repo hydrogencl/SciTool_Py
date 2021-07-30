@@ -274,7 +274,7 @@ class namelist_creater:
         "io_form_auxinput2"                : { "VALUE":  2           , "DATA_TYPE" : "INT" , "ARR_TYPE" :"S"},
         "io_form_auxhist1"                 : { "VALUE":  2           , "DATA_TYPE" : "INT" , "ARR_TYPE" :"S"},
         "io_form_auxhist2"                 : { "VALUE":  2           , "DATA_TYPE" : "INT" , "ARR_TYPE" :"S"},
-        "auxinput1_inname"                 : { "VALUE":  'm'      , "DATA_TYPE" : "STR" , "ARR_TYPE" :"S", "STR_FMT" : "\'{0:s}{2:s}.d<domain>.<date>\',"}}
+        "auxinput1_inname"                 : { "VALUE":  'm'      , "DATA_TYPE" : "STR" , "ARR_TYPE" :"S", "STR_FMT" : "\'{0:s}{3:s}.d<domain>.<date>\',"}}
 
         # Domain Common Parameters:
         self.DIC_domains_common_para= {\
@@ -462,7 +462,7 @@ class namelist_creater:
                     self.FILE.write(DIC_DATA_TYPE_STR[DIC_in[ARR_item]["DATA_TYPE"]].format(self.BLN2WRFSTR(DIC_in[ARR_item]["VALUE"])))
                 elif DIC_in[ARR_item]["DATA_TYPE"] == "STR":
                     if self.IF_ensemble_run:
-                        self.FILE.write(DIC_in[ARR_item]["STR_FMT"].format(DIC_in[ARR_item]["VALUE"], "{0:05d}".format(self.NUM_ensemble_member), self.STR_connect_symbol))
+                        self.FILE.write(DIC_in[ARR_item]["STR_FMT"].format(DIC_in[ARR_item]["VALUE"], "{0:05d}".format(self.NUM_ensemble_member), self.STR_connect_symbol,"{0:05d}".format(self.NUM_input_ensemble_member)))
                     else:
                         self.FILE.write(DIC_in[ARR_item]["STR_FMT"].format(DIC_in[ARR_item]["VALUE"], ""              , ""))
                 else:

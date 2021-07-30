@@ -585,6 +585,63 @@ class MATH_TOOLS:
         gau_kde: kernel density estimator by Gaussian Function
         standard_dev: The Standard deviation
     """
+    def GaussJordanEli(arr_in):
+        num_ydim = len(arr_in)
+        num_xdim = len(arr_in[0])
+        arr_out = arr_in
+        
+        if num_ydim -num_xdim == 0 or num_xdim - num_ydim == 1:
+            arr_i   = NP.array([[0.0 for j in range(num_ydim)] for i in range(num_ydim)])
+            for ny in range(num_ydim):
+                arr_i[ny][ny] = 1.0
+            #print(arr_i)
+            for nx in range(num_xdim):                        
+                for ny in range(nx+1, num_ydim):
+                    arr_i  [ny] = arr_i  [ny] - arr_i  [nx] * arr_out[ny][nx] / float(arr_out[nx][nx])
+                    arr_out[ny] = arr_out[ny] - arr_out[nx] * arr_out[ny][nx] / float(arr_out[nx][nx])
+            if num_xdim - num_ydim == 1:
+                for nx in range(num_xdim-1,-1,-1):                        
+                    for ny in range(num_ydim-1,nx, -1):
+                        print(nx,ny)
+                        arr_i  [nx] = arr_i  [nx] - arr_i  [ny] * arr_out[nx][ny] / float(arr_out[ny][ny])
+                        arr_out[nx] = arr_out[nx] - arr_out[ny] * arr_out[nx][ny] / float(arr_out[ny][ny])
+            else:
+                for nx in range(num_xdim,-1,-1):                        
+                    for ny in range(num_ydim-1, nx, -1):
+                        print(nx,ny)
+                        arr_i  [nx] = arr_i  [nx] - arr_i  [ny] * arr_out[nx][ny] / float(arr_out[ny][ny])
+                        arr_out[nx] = arr_out[nx] - arr_out[ny] * arr_out[nx][ny] / float(arr_out[ny][ny])
+                    
+            if num_xdim - num_ydim == 1:
+                arr_sol = [0.0 for n in range(num_ydim)]
+                for ny in range(num_ydim):
+                    arr_sol[ny] = arr_out[ny][num_xdim-1]/arr_out[ny][ny]
+                return arr_out, arr_i, arr_sol
+            else:
+                return arr_out, arr_i
+        else:
+            print("Y dim: {0:d}, X dim: {1:d}: can not apply Gaussian-Jordan".format(num_ydim, num_xdim))
+            return [0]
+        
+    def finding_XM_LSM(arr_in1, arr_in2, m=2):
+        # Finding the by least square method
+        arr_out=[[0.0 for i in range(m+2)] for j in range(m+1)]
+        arr_x_power_m  = [0.0 for i in range(m+m+1)]
+        arr_xy_power_m = [0.0 for i in range(m+1)]
+        for n in range(len(arr_x_power_m)):
+            for x in range(len(arr_in1)):
+                arr_x_power_m[n] += arr_in1[x] ** n
+        
+        for n in range(len(arr_xy_power_m)):
+            for x in range(len(arr_in1)):
+                arr_xy_power_m[n] += arr_in1[x] ** n * arr_in2[x]
+        
+        for j in range(m+1):
+            for i in range(j,j+m+1):
+                arr_out[j][i-j] = arr_x_power_m[i]
+            arr_out[j][m+1]   = arr_xy_power_m[j]
+        return arr_out
+
     def cal_modelperform (arr_obs , arr_sim , num_empty=-999.999):
         # Based on Vazquez et al. 2002 (Hydrol. Process.)
         num_arr = len(arr_obs)
@@ -593,35 +650,37 @@ class MATH_TOOLS:
         num_obs_sum = 0
     
         for n in range( num_arr ):
-            if not math.isnan(arr_obs[n]) and arr_obs[0] != num_empty:
+            if  math.isnan(arr_obs[n]) or arr_obs[n] == num_empty:
+                num_n_total += -1
+            else: 
                 num_sum = num_sum + ( arr_sim[n] - arr_obs[n] )    ** 2
                 num_obs_sum = num_obs_sum +    arr_obs[n]
-            else:
-                num_n_total += -1
         if num_n_total == 0 or num_obs_sum == 0:
-            RRMSE   = 0.0
-            obs_avg = 0.0
+            RRMSE   = -999.999
+            RMSE    = -999.999
+            obs_avg = -999.999
         else:
             RRMSE = ( num_sum / num_n_total ) ** 0.5 *    ( num_n_total / num_obs_sum )
+            RMSE  = ( num_sum / num_n_total ) ** 0.5 
             obs_avg = num_obs_sum / num_n_total
     
         num_n_total = num_arr
         oo_sum = 0
         po_sum = 0
         for nn in range( num_arr ):
-            if arr_obs[nn] != num_empty and not math.isnan(arr_obs[nn]):
+            if  math.isnan(arr_obs[nn]) or arr_obs[nn] == num_empty:
+                num_n_total = num_n_total - 1
+            else:
                 oo_sum = oo_sum + ( arr_obs[nn] - obs_avg )     ** 2
                 po_sum = po_sum + ( arr_sim[nn] - arr_obs[nn] ) ** 2
-            else:
-                num_n_total = num_n_total - 1
     
-        if num_n_total == 0:
-            EF = 0.0
-            CD = 0.0
+        if num_n_total == 0 or oo_sum * po_sum == 0:
+            EF = -999.999
+            CD = -999.999
         else:
             EF = ( oo_sum - po_sum ) / oo_sum
             CD = oo_sum / po_sum
-        return RRMSE,EF,CD, num_arr
+        return RRMSE,EF,CD,RMSE, num_arr
 
 
 
@@ -679,7 +738,10 @@ class MATH_TOOLS:
         NUM_MEAN = 1.0*NUM_SUM/NUM_N
         NUM_SUM2 = 0.0
         for N in ARR_IN:
-            NUM_SUM2 = (N-NUM_MEAN)**2
+            if not math.isnan(N):
+                NUM_SUM2 = (N-NUM_MEAN)**2
+            else:
+                NUM_N += -1
         return (NUM_SUM2 / (NUM_N-1)) ** 0.5
     
     def h_esti(ARR_IN):
@@ -731,6 +793,28 @@ class TOOLS:
     """
     ARR_HOY      = [0, 744, 1416, 2160, 2880, 3624, 4344, 5088, 5832, 6552, 7296, 8016, 8760] 
     ARR_HOY_LEAP = [0, 744, 1440, 2184, 2904, 3648, 4368, 5112, 5856, 6576, 7320, 8040, 8784]
+
+    def NNARR(ARR_IN, IF_PAIRING=False):
+        "Clean the NaN value in the array"
+
+        if IF_PAIRING:
+            ARR_SIZE = len(ARR_IN)
+            ARR_OUT  = [ [] for N in range(ARR_SIZE)]
+            for ind_n, N in enumerate(ARR_IN[0]):
+                IF_NAN = False
+                for ind_a in range(ARR_SIZE):
+                    if math.isnan(ARR_IN[ind_a][ind_n]):
+                        IF_NAN = True
+                        break
+                if not IF_NAN:
+                    for ind_a in range(ARR_SIZE):
+                        ARR_OUT[ind_a].append(ARR_IN[ind_a][ind_n])
+        else: 
+            ARR_OUT  = [ ]
+            for N in ARR_IN:
+                if not math.isnan(N):
+                    ARR_OUT.append(N)
+        return ARR_OUT
 
     def DATETIME2HOY(ARR_TIME, ARR_HOY_IN=[]):
         if math.fmod(ARR_TIME[0], 4) == 0 and len(ARR_HOY_IN) == 0:
