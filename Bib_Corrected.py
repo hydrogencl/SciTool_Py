@@ -32,7 +32,10 @@ class BIB_CORRECTING_TOOL:
             self.FILE_BIB_OUT.write("{0:s}".format( line ))
 if __name__ == "__main__":
     print("PLEASE state at least the input .bib file name:")
-    STR_FILE_IN = raw_input("filename:")
+    try:
+        STR_FILE_IN = raw_input("filename:")
+    except:
+        STR_FILE_IN = input("filename:")
     BCT = BIB_CORRECTING_TOOL(STR_FILE_IN)
     BCT.REMOVING_ROUND_BRACKET()
     BCT.WRITEOUT_BIB()

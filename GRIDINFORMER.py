@@ -1094,23 +1094,31 @@ class WRF_HELPER:
     STR_DIR_ROOT  = "./"
     NUM_TIME_INIT = 0
     NUM_SHIFT     = 0.001
+    
+    STR_DEFAULT_LONG      = "CLONG"
+    STR_DEFAULT_LAT       = "CLAT"
+
+
 
     def __init__(self):
         """ 
         Remember: most array should be follow the rule of [j,i] instead of [x,y]. 
         """
         STR_NCDF4PY = NC.__version__
-        print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY))
 
+        self.STR_LONG = self.STR_DEFAULT_LONG
+        self.STR_LAT  = self.STR_DEFAULT_LAT
+
+        print("Using netCDF4 for Python, Version: {0:s}".format(STR_NCDF4PY))
 
     def GEO_INFORMATER(self, STR_FILE="geo_em.d01.nc", STR_DIR=""):
         print("INPUT GEO FILE: {0:s}".format(STR_FILE))
         if STR_DIR == "":
             STR_DIR == self.STR_DIR_ROOT
         self.FILE_IN  = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILE ), "r",format="NETCDF4")
-        self.MAP_LAT  = self.FILE_IN.variables["CLAT"] [self.NUM_TIME_INIT]
-        self.MAP_LON  = self.FILE_IN.variables["CLONG"][self.NUM_TIME_INIT]
-        ARR_TMP_IN     = self.FILE_IN.variables["CLONG"][0]
+        self.MAP_LAT  = self.FILE_IN.variables[self.STR_LAT] [self.NUM_TIME_INIT]
+        self.MAP_LON  = self.FILE_IN.variables[self.STR_LONG][self.NUM_TIME_INIT]
+        ARR_TMP_IN     = self.FILE_IN.variables[self.STR_LONG][0]
         # Since NetCDF4 for python does not support the hyphen in attributes, I 
         # am forced to calculate the NX and NY based on a map in the NC file. 
         self.NUM_NX    = len(ARR_TMP_IN[0])

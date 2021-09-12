@@ -29,7 +29,8 @@ class TaylorsDiagram:
                        (0.30*.5*NUM_PI, r"0.8 "),
                        (0.20*.5*NUM_PI, r"0.9 "),
                        (0.10*.5*NUM_PI, r"0.95"),
-                       (0.01*.5*NUM_PI, r"0.99")]
+                       (0.01*.5*NUM_PI, r"0.99"),
+                       (0.00*.5*NUM_PI, r"    ")]
 
     angle_grids = [(Sc(0.0 )*.5*NUM_PI, r"0   "),
                    (Sc(0.20)*.5*NUM_PI, r"0.2 "),
@@ -67,20 +68,24 @@ class TaylorsDiagram:
         """
         Adopting from the examples on Matplotlib.org
         """
-        self.num_refstd=num_refstd
+        
         tr = PolarAxes.PolarTransform()
-       
-        grid_locator1 = FixedLocator([v for v, s in self.angle_grids])
+        grid_locator1   = FixedLocator([v for v, s in self.angle_grids])
         tick_formatter1 = DictFormatter(dict(self.angle_ticks))
-        grid_locator2 = MaxNLocator(2)
+        grid_locator2   = MaxNLocator(2)
+        
+        self.num_mag    = num_mag
+        self.num_refstd = num_refstd
+        self.num_max    = self.num_refstd * self.num_mag
     
         if if_rel:
             grid_locator2 = FixedLocator([0.0,0.5,1.0,1.5,2.0])
-    
-        num_max = self.num_refstd * num_mag
+        else:
+            grid_locator2 = FixedLocator(NP.arange(0.0, self.num_max+0.1, 0.5))
+            
     
         grid_helper = floating_axes.GridHelperCurveLinear(
-            tr, extremes=(0.5*self.NUM_PI,0, num_max, 0),
+            tr, extremes=(0.5*self.NUM_PI,0, self.num_max, 0),
             grid_locator1=grid_locator1,
             grid_locator2=grid_locator2,
             tick_formatter1=tick_formatter1,
@@ -133,8 +138,10 @@ class TaylorsDiagram:
         if not STR_TEXT == "": 
             self.aux.text (NUM_theta*1.05, NUM_Std*1.05, STR_TEXT, fontsize=10)
     
-    def add_countour(self, num_intvl=0.25, num_cnts=10, alpha=0.5, color='#b4b4b4', if_rel=False):
-        arr_psi = NP.arange(0, self.NUM_PI, 0.05)
+    def add_contour(self, num_intvl=0.25, num_cnts=0, alpha=0.5, color='#b4b4b4', if_rel=False):
+        if num_cnts == 0:
+            num_cnts = int(self.num_mag / num_intvl )
+        arr_psi = NP.arange(0, self.NUM_PI+0.01, 0.05)
         arr_r   = [[] for n in range(num_cnts)]
         arr_theta   = [[] for n in range(num_cnts)]
         for n in range(num_cnts):
@@ -152,7 +159,7 @@ class TaylorsDiagram:
 
 ##########################################################
 
-if __main__ == "__name__":
+if __name__ == "main":
     print("This is an example")
 
     FIG = PLT.figure(figsize=(5,5))
