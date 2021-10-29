@@ -58,6 +58,13 @@ class GRIDINFORMATER:
                       .format(NUM_ARR_NY_T1,NUM_ARR_NY_T2,NUM_ARR_NX_T1,NUM_ARR_NX_T2))
 
     def index_map(self, ARR_IN=[], NUM_IN_NX=0, NUM_IN_NY=0):
+        """
+        This module is to do a map for index. 
+        If Input nothing: will index the ARR_GRID
+            or the input in ARR_IN. 
+        The format of ARR_GRID is a diction with arrays, which contains keys 
+            "INDEX_J", "INDEX_I", and "INDEX"
+        """
         if len(ARR_IN) == 0:
             self.INDEX_MAP = [[ self.NUM_NULL for i in range(self.NUM_NX)] for j in range(self.NUM_NY)]
             NUM_ALL_INDEX = len(self.ARR_GRID)
@@ -72,7 +79,10 @@ class GRIDINFORMATER:
             return MAP_INDEX
                                                      
     def add_an_element(self, ARR_GRID, NUM_INDEX=0, STR_VALUE=STR_VALUE_INIT, NUM_VALUE=NUM_VALUE_INIT ):
-        """ Adding an element to an empty array """
+        """ Adding an element to an empty array 
+            This only add 
+
+        """
         OBJ_ELEMENT = {"INDEX" : NUM_INDEX, \
                        STR_VALUE : NUM_VALUE}
         ARR_GRID.append(OBJ_ELEMENT)
@@ -1091,15 +1101,22 @@ class NETCDF4_HELPER:
         FILE_IN.close()
 
 class WRF_HELPER:
+    """ 
+        This module is to read the WRF output files (as NetCDF format) and 
+            stored
+
+        GEO_INFORMATER: is to read the geo_em.d*.nc files, and extract the 
+            Map of Latitude, Map of Longitude
+            NUM_NX, NUM_NY
+    """
+
     STR_DIR_ROOT  = "./"
     NUM_TIME_INIT = 0
     NUM_SHIFT     = 0.001
     
     STR_DEFAULT_LONG      = "CLONG"
     STR_DEFAULT_LAT       = "CLAT"
-
-
-
+    
     def __init__(self):
         """ 
         Remember: most array should be follow the rule of [j,i] instead of [x,y]. 
@@ -1168,11 +1185,15 @@ class WRF_HELPER:
         self.DIC_CROP_INFO["SW"]["LON"]  = self.MAP_LON[NUM_SW_J][NUM_SW_I]
 
 
-    def PROFILE_HELPER(STR_FILE_IN, ARR_DATE_START, NUM_DOMS=3, NUM_TIMESTEPS=24, IF_PB=False):
+    def PROFILE_HELPER(STR_FILE_IN, ARR_DATE_START=0, NUM_DOMS=3, NUM_TIMESTEPS=24, IF_PB=False):
         """
         This functions reads the filename, array of starting date, 
         and simulation hours and numbers of domains
         to profiling the time it takes for WRF.
+        Inputs: 
+        STR_FILE_IN    : the input file (rsl.out.0000)
+        NUM_TIME_STEPS : how much time in hour should be recorded (24 as default)
+        NUM_DOMS       : the domain size (3 as default)
         """
         FILE_READ_IN   = open("{0:s}".format(STR_FILE_IN))
         ARR_READ_IN    = FILE_READ_IN.readlines()
@@ -1199,7 +1220,6 @@ class WRF_HELPER:
                     NUM_HOUR     = NUM_HOUR_FIX + int(arr_time[0])
                     ARR_TIME_PROFILE[num_domain-1][NUM_HOUR] += num_elapsed
             if IF_PB: TOOLS.progress_bar(I/float(NUM_LEN_IN))
-        #self.ARR_TIME_PROFILE = ARR_TIME_PROFILE
         return ARR_TIME_PROFILE
 
 class DATA_READER:
@@ -1210,7 +1230,7 @@ class DATA_READER:
         self.STR_NULL=STR_NULL
         self.NUM_NULL=NUM_NULL
         
-    def stripblnk(arr,*num_typ):
+    def stripblnk(arr, *num_typ):
         new_arr=[]
         for i in arr:
             if i == "":
@@ -1226,15 +1246,20 @@ class DATA_READER:
                     print("WRONG num_typ!")
         return new_arr
     
-    def tryopen(self, sourcefile, ag):
+    def tryopen(self, FILE_IN, ag):
         try:
-            opf=open(sourcefile,ag)
+            opf=open(sourcefile, ag)
             return opf
         except :
             print("No such file.")
             return "error"
     
     def READCSV(self, sourcefile):
+        """
+        This module is to read the csv file. 
+        The hashtag '#' will be skipped as well
+        The output array is 2D: column as y, rows as x
+        """
         opf    = self.tryopen(sourcefile,'r')
         opfchk = self.tryopen(sourcefile,'r')
         print("reading source file {0:s}".format(sourcefile))
@@ -1259,8 +1284,6 @@ class DATA_READER:
             result_arr_text=[]
             num_pass = 0
             for j in range(0,num_totallines):
-                # chk if comment
-                #print (j,i,chk_val)
                 line_in = opf.readline()
                 c_first = re.findall(".",line_in.strip())[0]
                 if c_first == "#":
