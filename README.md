@@ -20,7 +20,7 @@ Based on the work from stackflow, the progress bar can be used in `Jupyter` and 
 ## Taylor's Diagram - YS
 
 This is a simple example of Taylor's diagram, which requires only `matplotlib`. 
-Please note that the spacing between 0.9 to 0.99 is the same as other numbers. 
+The spacing of the correlation axis is depending on a sin fixing. 
 
 ## Gridtrans
 
