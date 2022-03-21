@@ -188,17 +188,20 @@ class namelist_creater:
     # Ensembles:
     NUM_ensemble_member       = 0
     NUM_input_ensemble_member = 0
-    IF_ensemble_run           = False
     # Others:
     STR_DIR="./"
 
-    def __init__(self, STR_namelist="namelist.input", STR_DIR="./"):
+    def __init__(self, STR_namelist="namelist.input", STR_DIR="./", IF_ENSEMBLE=False):
         print("Start the namelist creator by Python")
         print("    Author: Y.-S. Lu                ")
         print("    First Edition: 24.04.2020       ")
         print("              ... during COVID-19   ")
 
+        # ADDITIONAL OPTIONS
+        self.IF_QUILT_IO = False
+
         # ENSEMBLE SETTING UP
+        self.IF_ENSEMBLE_RUN = IF_ENSEMBLE
         self.IF_SPPT  = False
         self.IF_SKEBS = False
         self.STR_connect_symbol = "_"
@@ -209,11 +212,18 @@ class namelist_creater:
         self.STR_namelist = STR_namelist
         self.STR_DIR      = STR_DIR
 
-        self.ARR_time_control = ['run_days', 'run_hours', 'run_minutes', 'run_seconds', 'start_year', 'start_month', 'start_day', 'start_hour', 'start_minute', 'start_second', 'end_year', 'end_month', 'end_day', 'end_hour', 'end_minute', 'end_second', 'interval_seconds', 'input_from_file', 'history_interval', 'history_outname', 'bdy_inname', 'input_inname', 'frames_per_outfile', 'auxhist1_outname', 'auxhist2_outname', 'auxhist1_interval', 'auxhist2_interval', 'frames_per_auxhist1', 'frames_per_auxhist2', 'aux1_time', 'aux2_time', 'interpolation_time', 'interpolation_number', 'restart', 'restart_interval', 'override_restart_timers', 'io_form_history', 'io_form_restart', 'io_form_input', 'io_form_boundary', 'debug_level', 'io_form_auxinput2', 'io_form_auxhist1', 'io_form_auxhist2', 'auxinput1_inname']
+        if self.IF_ENSEMBLE_RUN: 
+            self.ARR_time_control = ['run_days', 'run_hours', 'run_minutes', 'run_seconds', 'start_year', 'start_month', 'start_day', 'start_hour', 'start_minute', 'start_second', 'end_year', 'end_month', 'end_day', 'end_hour', 'end_minute', 'end_second', 'interval_seconds', 'input_from_file', 'history_interval', 'history_outname', 'bdy_inname', 'input_inname', 'frames_per_outfile', 'auxhist1_outname', 'auxhist2_outname', 'auxhist1_interval', 'auxhist2_interval', 'frames_per_auxhist1', 'frames_per_auxhist2', 'aux1_time', 'aux2_time', 'interpolation_time', 'interpolation_number', 'restart', 'restart_interval', 'override_restart_timers', 'io_form_history', 'io_form_restart', 'io_form_input', 'io_form_boundary', 'debug_level', 'io_form_auxinput2', 'io_form_auxhist1', 'io_form_auxhist2', 'auxinput1_inname']
+        else:
+            self.ARR_time_control = ['run_days', 'run_hours', 'run_minutes', 'run_seconds', 'start_year', 'start_month', 'start_day', 'start_hour', 'start_minute', 'start_second', 'end_year', 'end_month', 'end_day', 'end_hour', 'end_minute', 'end_second', 'interval_seconds', 'input_from_file', 'history_interval', 'history_outname', 'bdy_inname', 'input_inname', 'frames_per_outfile', 'restart', 'restart_interval', 'override_restart_timers', 'io_form_history', 'io_form_restart', 'io_form_input', 'io_form_boundary', 'debug_level', 'io_form_auxinput2', 'io_form_auxhist1', 'io_form_auxhist2', 'auxinput1_inname']
+
 
         self.ARR_domains = ['time_step', 'time_step_fract_num', 'time_step_fract_den', 'max_dom', 'e_we', 'e_sn', 'e_vert', 'p_top_requested', 'num_metgrid_levels', 'num_metgrid_soil_levels', 'dx', 'dy', 'grid_id', 'parent_id', 'i_parent_start', 'j_parent_start', 'parent_grid_ratio', 'feedback', 'use_adaptive_time_step', 'step_to_output_time', 'target_cfl', 'max_step_increase_pct', 'starting_time_step', 'max_time_step', 'min_time_step', 'adaptation_domain', 'interp_type', 'smooth_option', 'sfcp_to_sfcp']
 
-        self.ARR_physics = ['mp_physics', 'ra_lw_physics', 'ra_sw_physics', 'sf_sfclay_physics', 'sf_surface_physics', 'bl_pbl_physics', 'cu_physics', 'radt', 'bldt', 'cudt', 'isftcflx', 'isfflx', 'ifsnow', 'icloud', 'surface_input_source', 'num_soil_layers', 'sf_urban_physics', 'maxiens', 'maxens', 'maxens2', 'maxens3', 'ensdim', 'topo_wind', 'num_land_cat', 'ysu_st']
+        if self.IF_ENSEMBLE_RUN: 
+            self.ARR_physics = ['mp_physics', 'ra_lw_physics', 'ra_sw_physics', 'sf_sfclay_physics', 'sf_surface_physics', 'bl_pbl_physics', 'cu_physics', 'radt', 'bldt', 'cudt', 'isftcflx', 'isfflx', 'ifsnow', 'icloud', 'surface_input_source', 'num_soil_layers', 'sf_urban_physics', 'maxiens', 'maxens', 'maxens2', 'maxens3', 'ensdim', 'topo_wind', 'num_land_cat', 'ysu_st']
+        else:
+            self.ARR_physics = ['mp_physics', 'ra_lw_physics', 'ra_sw_physics', 'sf_sfclay_physics', 'sf_surface_physics', 'bl_pbl_physics', 'cu_physics', 'radt', 'bldt', 'cudt', 'isftcflx', 'isfflx', 'ifsnow', 'icloud', 'surface_input_source', 'num_soil_layers', 'sf_urban_physics', 'num_land_cat']
 
         self.ARR_dynamics = ['w_damping', 'diff_opt', 'km_opt', 'diff_6th_opt', 'diff_6th_factor', 'time_step_sound', 'base_temp', 'damp_opt', 'dampcoef', 'khdif', 'kvdif', 'non_hydrostatic', 'moist_adv_opt', 'scalar_adv_opt']
 
@@ -225,6 +235,7 @@ class namelist_creater:
 
         self.ARR_stoch_sppt = ['sppt', 'nens', 'timescale_sppt', 'gridpt_stddev_sppt', 'ISEED_SPPT']
 
+        self.ARR_quilt_io   = ['nio_tasks_per_group', 'nio_groups']
 
         # Time_Control common parameters:
         self.DIC_time_control_common_para = {\
@@ -274,7 +285,7 @@ class namelist_creater:
         "io_form_auxinput2"                : { "VALUE":  2           , "DATA_TYPE" : "INT" , "ARR_TYPE" :"S"},
         "io_form_auxhist1"                 : { "VALUE":  2           , "DATA_TYPE" : "INT" , "ARR_TYPE" :"S"},
         "io_form_auxhist2"                 : { "VALUE":  2           , "DATA_TYPE" : "INT" , "ARR_TYPE" :"S"},
-        "auxinput1_inname"                 : { "VALUE":  'm'      , "DATA_TYPE" : "STR" , "ARR_TYPE" :"S", "STR_FMT" : "\'{0:s}{3:s}.d<domain>.<date>\',"}}
+        "auxinput1_inname"                 : { "VALUE":  'met'       , "DATA_TYPE" : "STR" , "ARR_TYPE" :"S", "STR_FMT" : "\'{0:s}{1:s}.d<domain>.<date>\',"}}
 
         # Domain Common Parameters:
         self.DIC_domains_common_para= {\
@@ -461,7 +472,7 @@ class namelist_creater:
                 if DIC_in[ARR_item]["DATA_TYPE"] == "BLN":
                     self.FILE.write(DIC_DATA_TYPE_STR[DIC_in[ARR_item]["DATA_TYPE"]].format(self.BLN2WRFSTR(DIC_in[ARR_item]["VALUE"])))
                 elif DIC_in[ARR_item]["DATA_TYPE"] == "STR":
-                    if self.IF_ensemble_run:
+                    if self.IF_ENSEMBLE_RUN:
                         self.FILE.write(DIC_in[ARR_item]["STR_FMT"].format(DIC_in[ARR_item]["VALUE"], "{0:05d}".format(self.NUM_ensemble_member), self.STR_connect_symbol,"{0:05d}".format(self.NUM_input_ensemble_member)))
                     else:
                         self.FILE.write(DIC_in[ARR_item]["STR_FMT"].format(DIC_in[ARR_item]["VALUE"], ""              , ""))
@@ -501,7 +512,7 @@ class namelist_creater:
             self.FILE.write("\n")
 
     def create_a_namelist(self):
-        if self.IF_ensemble_run :
+        if self.IF_ENSEMBLE_RUN :
             self.FILE     = open("{0:s}/{1:s}{2:05d}".format(self.STR_DIR, self.STR_namelist, self.NUM_ensemble_member), "w")
         else: 
             self.FILE     = open("{0:s}/{1:s}".format(self.STR_DIR, self.STR_namelist), "w")
