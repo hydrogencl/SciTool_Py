@@ -19,13 +19,16 @@ class SlurmController:
         self.str_rootdir   = strRootdir
         if strMachine == "JUWELS":
             self.corespernode  = 48
+        if strMachine == "JURECA":
+            self.corespernode  = 64
         self.if_serverlog      = ifServerLog
         if ifServerLog:
             self.strServerLog = "{0:s}/{1:s}".format(strRootdir, strServerLog)
             fileLog = open(self.strServerLog, "w")
             fileLog.close()
-        self.num_waiting  = 5
-        self.StartTime    = time.time_ns() * 10 ** -9
+        self.num_waiting   = 5
+        self.num_ping_file = 5
+        self.StartTime     = time.time_ns() * 10 ** -9
 
     def ChangeServerLog(self, fileOutput):
         self.fileServerLog = open(fileOutput, "w")
@@ -43,7 +46,7 @@ class SlurmController:
             len(self.arr_hostnames)
         except:
             print("No Nodelist, obtaining automatically")
-            CheckNodelist()
+            self.CheckNodelist()
 
         for m in range(members):
             for n in range(UsingNodes):
@@ -79,7 +82,7 @@ class SlurmController:
             for item in self.arr_runfolder_files:
                 subprocess.run(["ln","-s", "{0:s}/{1:s}/{2:s}".format(self.str_rootdir, self.folder_run, item), "."])
 
-    def CreateMembers(self, arrException=[], if_force=True):
+    def CreateMembers(self, arrException=[], if_force=True, if_hardlink=False):
 
         self.arr_runfolder_files = os.listdir("{0:s}/{1:s}".format(self.str_rootdir, self.folder_run))
         for ind, item in enumerate(self.arr_runfolder_files):
@@ -97,12 +100,17 @@ class SlurmController:
                 os.mkdir("{0:s}".format(str_runfolder_out))
                 os.chdir("{0:s}".format(str_runfolder_out))
                 for item in self.arr_runfolder_files:
-                    subprocess.run(["ln","-s", "{0:s}/{1:s}/{2:s}".format(self.str_rootdir, self.folder_run, item), "."])
+                    strFileIn  = "{0:s}/{1:s}/{2:s}".format(self.str_rootdir, self.folder_run, item)
+                    strFileOut = "{0:s}/{1:s}".format(str_runfolder_out, item)
+                    if if_hardlink:
+                        os.link(strFileIn, strFileOut)
+                    else:
+                        os.symlink(strFileIn, strFileOut)
+                    #subprocess.run(["ln","-s", "{0:s}/{1:s}/{2:s}".format(self.str_rootdir, self.folder_run, item), "."])
                 os.chdir(self.str_rootdir)
 
     def FileControl(self, strTargetFile, strAction, strSourceFile=""):
         for ind in range(self.nummembers):
-            #srun -N 1 -n 48 --verbose --nodelist=jwc00n019 --output=WRF.test.out --job-name=JOBNAME  ./wrf.exe &
             str_runfolder_out = "{3:s}/{0:s}{1:s}{2:04d}".format(self.folder_run, self.str_pre, ind, self.str_rootdir)
             strTargetPath = "{0:s}/{1:s}".format(str_runfolder_out, strTargetFile)
             if strAction == "remove":
@@ -121,19 +129,20 @@ class SlurmController:
 
 
     def RunMembers(self, strExecutor=""):
+        if strExecutor == "":
+            print("FATAL ERROR: you did not specific the executor's name") 
         for ind in range(self.nummembers):
-            #srun -N 1 -n 48 --verbose --nodelist=jwc00n019 --output=WRF.test.out --job-name=JOBNAME  ./wrf.exe &
             str_runfolder_out = "{3:s}/{0:s}{1:s}{2:04d}".format(self.folder_run, self.str_pre, ind, self.str_rootdir)
             os.chdir("{0:s}".format(str_runfolder_out))
             self.ServerLog("Mem: {3:04d}, Nodes: {0:4d}, Cores: {1:4d}, Nodelist: {2:s}"\
-                           .format(self.nodespermember, self.corespermember, self.arr_hostpermember[ind]))
+                           .format(self.nodespermember, self.corespermember, self.arr_hostpermember[ind], ind))
             Popen(["srun", \
                             "-N", "{0:d}".format(self.nodespermember),\
                             "-n", "{0:d}".format(self.corespermember),\
                             "--verbose",\
                             "--nodelist={0:s}".format(self.arr_hostpermember[ind]),\
                             "--output={0:s}".format(self.str_outname),\
-                            "--error={0:s}".format(self.str_errname),\
+                            "--error={0:s}".format(self.str_outname),\
                             "--job-name={0:s}".format(self.str_jobname),\
                             "{0:s}".format(strExecutor),\
                             "&"], 
@@ -157,15 +166,18 @@ class SlurmController:
                         text_err = fileOut.readlines()[-1]
                 except:
                     self.ServerLog("Can not find the log files. Will retry after {0:d} seconds".format(numWRFinitTime))
+                    self.ServerLog("Folder to log: {0:s}".format(str_runfolder_out))
                     time.sleep(numWRFinitTime)
                     ifContinueSearch = True
-                    while ifContinueSearch:
-                        print("check if exist")
+                    num_Retry        = 0
+                    if ifContinueSearch and num_Retry < self.num_ping_file:
+                        print("check if exist, retry {0:d}/{1:d}".format(num_Retry,self.num_ping_file))
                         chkOut = os.path.exists("{0:s}/rsl.out.0000".format(str_runfolder_out))
                         chkErr = os.path.exists("{0:s}/rsl.error.0000".format(str_runfolder_out))
                         if chkOut and chkErr:
                             ifContinueSearch = False
                         time.sleep(numWaitingTime)
+                        num_Retry += 1
                     with open("{0:s}/rsl.out.0000".format(str_runfolder_out), "r") as fileOut:
                         text_out = fileOut.readlines()[-1]
                     with open("{0:s}/rsl.error.0000".format(str_runfolder_out), "r") as fileOut:
