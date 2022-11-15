@@ -38,6 +38,8 @@ The main works are here:
 
         + `CheckMembersWRF` : A simple tool to check if the WRF of each member is still alive
 
++ The example of running WRF can be found in `run_lef_exaple.py`
+
 ## GRIDINFORMATER 
 
 Will deal with gridcells. 
@@ -68,4 +70,5 @@ One day this will be integrated into GRIDINFORMER
 A small tool to fix the .bib file, to remove all the round bracket that can not be read by `Gummi`. 
 Before running the bibliothek function of Gummi, run this script to let `Gummi` read the .bib file. 
 
++ update: It seems like GUMMI has already fixed this bug, this is not needed. 
 
