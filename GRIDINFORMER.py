@@ -1,6 +1,8 @@
 import math,re,sys,os,time
 import random as RD
 import time
+import struct
+
 try:
     import netCDF4 as NC
 except:
@@ -803,7 +805,11 @@ class MATH_TOOLS:
         A,B,C,D = MATH_TOOLS.NVtoPlane(P0, P1, P2)
         return (D-A*P3[0] - B*P3[1])/float(C)
 
-
+    def c2p(x,y):
+        if y != 0.0:
+            return math.fmod(math.atan(float(x/y)) * 180./math.pi + (x < 0) * 360  + (y < 0)*180, 360)
+        else:
+            return (x < 0) * 270 + (x > 0) * 90
 
 class TOOLS:
     """ TOOLS is contains:
@@ -925,6 +931,10 @@ class TOOLS:
                     if ARR_END_TIME[NUM_ARR_POS] <= DIC_TIME_LIM[ITEM]["LIMIT"]:  ARR_FERTIG[NUM_ARR_POS] = 1
                 if sum(ARR_FERTIG) == 6: IF_FERTIG = True
         return ARR_END_TIME
+
+    
+
+
 
 class MPI_TOOLS:
 
@@ -1222,7 +1232,12 @@ class DATA_READER:
     def __init__(self, STR_NULL="noData", NUM_NULL=-999.999):
         self.STR_NULL=STR_NULL
         self.NUM_NULL=NUM_NULL
-        
+        self.endian   = STR_endian
+        if self.endian=="b":
+           sym_end=">"
+        elif self.endian=="l":
+           sym_end="<"
+
     def stripblnk(arr,*num_typ):
         new_arr=[]
         for i in arr:
