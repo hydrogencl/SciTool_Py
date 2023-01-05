@@ -1289,4 +1289,78 @@ class DATA_READER:
                             result_arr[j-num_pass][i] = float(chk_val)
         return result_arr,result_arr_text
 
+    def IbtracsReader(self, strFileIn):
+        fileIn    = open(strFileIn, 'r')
+        arrLines  = fileIn.readlines()
+        numLength = len(arrLines)
+
+        arrITEM15  = ["BASIN", "TIME",   "NATURE", 
+                      "LAT"  ,  "LON", "WMO_WIND", "WMO_PRES",
+                      "USA_WIND", "USA_PRES", "TOKYO_WIND", "TOKYO_PRES",
+                      "CMA_WIND", "CMA_PRES", "HKO_WIND"  ,   "HKO_PRES"]
+
+        arrITEM16  = ["BASIN", "DATE", "TIME"    , "NATURE"  , 
+                      "LAT"  ,  "LON", "WMO_WIND", "WMO_PRES",
+                      "USA_WIND", "USA_PRES", "TOKYO_WIND", "TOKYO_PRES",
+                      "CMA_WIND", "CMA_PRES",   "HKO_WIND",   "HKO_PRES"]
+
+        arrFMT15   = ["str", "arr", "str", "float", "float",
+                      "float", "float", "float", "float", "float", 
+                      "float", "float", "float", "float", "float", "float"] 
+
+        arrFMT16   = ["str", "arr", "arr", "str", "float", "float",
+                      "float", "float", "float", "float", "float", 
+                      "float", "float", "float", "float", "float", "float"] 
+
+        # Made the output dic
+        dicOut    = {}
+        for item in arrITEM16:
+            dicOut[item] = [ "" for n in range(numLength) ]
+
+        # Analysing the dat and into the dictionary output
+        for ind,line in enumerate(arrLines):
+            arr_tmp = re.split("\s", line)
+            numChk  = len(arr_tmp)
+            if numChk == 17:
+                print(numChk , arr_tmp)
+                for ind2 in range(16):
+                    if arrFMT16[ind2] == "str":
+                        dicOut[ arrITEM16[ind2] ][ind] = str(arr_tmp[ind2]) 
+                    elif arrFMT16[ind2] == "arr":
+                        dicOut[ arrITEM16[ind2] ][ind] = \
+                            InputTool.readDateTime(arr_tmp[ind2])[arrITEM16[ind2]]
+                    elif arrFMT16[ind2] == "float":
+                        if arr_tmp[ind2] == '':
+                            dicOut[ arrITEM16[ind2] ][ ind ] = 0.0
+                        else:
+                            dicOut[ arrITEM16[ind2] ][ ind ] = float(arr_tmp[ ind2 ]) 
+
+            elif numChk == 16:
+                print(numChk , arr_tmp)
+                for ind2 in range(15):
+                    if arrFMT15[ind2] == "str":
+                        dicOut[ arrITEM15[ind2] ][ind] = str(arr_tmp[ind2]) 
+                    elif arrFMT15[ind2] == "arr":
+                        dicOut[ arrITEM15[ind2] ][ind] = \
+                            InputTool.readDateTime(arr_tmp[ind2])[arrITEM15[ind2]] 
+                    elif arrFMT15[ind2] == "float":
+                        if arr_tmp[ind2] == '':
+                            dicOut[ arrITEM15[ind2] ][ ind ] = -999.999
+                        else:
+                            dicOut[ arrITEM15[ind2] ][ ind ] = float(arr_tmp[ ind2 ]) 
+                
+            else:
+                print("something wrong with the dat file")
+        return dicOut  
+
+class InputTool:
+    def readDateTime(strIn):
+        arrTmp1 = re.split("-", strIn) 
+        arrTmp2 = re.split(":", strIn) 
+        if len(arrTmp1) == 3:
+            return {"DATE" : [int(tmp) for tmp in arrTmp1]  }
+        elif len(arrTmp2) == 3:
+            return {"TIME" : [int(tmp) for tmp in arrTmp2]  }
+        else:
+            return {"NONE" : None }
 
