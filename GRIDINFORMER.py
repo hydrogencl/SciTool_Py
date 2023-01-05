@@ -1246,7 +1246,53 @@ class DATA_READER:
         except :
             print("No such file.")
             return "error"
-    
+
+    def READPFB (self, sourcefile):
+         opf = tryopen(sourcefile,'rb')
+         print("reading source file {0:s}".format(sourcefile))
+         t1=struct.unpack('{0:s}ddd'.format(sym_end),opf.read(24))
+         tn=struct.unpack('{0:s}iii'.format(sym_end),opf.read(12))
+         td=struct.unpack('{0:s}ddd'.format(sym_end),opf.read(24))
+         tns=struct.unpack('{0:s}i'.format(sym_end),opf.read(4))
+         x1,y1,z1=t1
+         nx,ny,nz=tn
+         dx,dy,dz=td
+         ns=tns[0]
+         result_arr=list([[[0.0 for i in range(nx)] for j in range(ny)] for k in range(nz)])
+         for isub in range(0,ns):
+             ix,iy,iz,nnx,nny,nnz,rx,ry,rz=struct.unpack('{0:s}9i'.format(sym_end),opf.read(36))
+             tmp_total = nnx * nny * nnz
+             tvalue = struct.unpack('{1:s}{0:d}d'.format(tmp_total,sym_end), opf.read(8*tmp_total))
+             for k in range(nnz):
+                 for j in range(nny):
+                     for i in range(nnx):
+                                 result_arr[k+iz][j+iy][i+ix]=tvalue[ k*(nny*nnx) + j*nnx + i  ]
+ 
+         opf.close()
+         print("Completed reading pfb format from {0}".format(sourcefile))
+         return result_arr,nx,ny,nz,dx,dy,dz
+ 
+    def WRITEPFB(self, write_file_name,input_arr,nx,ny,nz,dx=0,dy=0,dz=0,x=0,y=0,z=0,ns=1):
+        # Can choose for big endian type or little endian type
+        sym_end = self.sym_end
+        wtf=open(write_file_name,"w")
+        wtf.write(struct.pack('{0:s}3d'.format(sym_end),x,y,z))
+        wtf.write(struct.pack('{0:s}3i'.format(sym_end),nx,ny,nz))
+        wtf.write(struct.pack('{0:s}3d'.format(sym_end),dx,dy,dz))
+        wtf.write(struct.pack('{0:s}1i'.format(sym_end),ns))
+
+        for isub in range(0,ns):
+            iz,iy,ix=int(z),int(y),int(x)
+            nnz,nny,nnx=int(nz),int(ny),int(nx)
+            wtf.write(struct.pack('{0:s}3i'.format(sym_end),0,0,0))
+            wtf.write(struct.pack('{0:s}3i'.format(sym_end),nx,ny,nz))
+            wtf.write(struct.pack('{0:s}3i'.format(sym_end),dx,dy,dz))
+            for i in range(iz,iz+nnz):
+                for j in range(iy,iy+nny):
+                    for k in range(ix,ix+nnx):
+                        wtf.write(struct.pack('{0:s}d'.format(sym_end),input_arr[i][j][k]))
+        wtf.close()
+
     def READCSV(self, sourcefile):
         opf    = self.tryopen(sourcefile,'r')
         opfchk = self.tryopen(sourcefile,'r')
@@ -1363,4 +1409,55 @@ class InputTool:
             return {"TIME" : [int(tmp) for tmp in arrTmp2]  }
         else:
             return {"NONE" : None }
+class AGORITHM:
+    def ParticleFilter(ARR_IN):
+        NUM_LEN_ARR_IN    = len(ARR_IN)
+        NPARR_IN          = NP.array(ARR_IN)
+        NPARR_WEIGHT_OUT  = NPARR_IN / NPARR_IN.sum()
+        NUM_WEIGHT_CUMSUM = NPARR_WEIGHT_OUT.cumsum()
+        NUM_THRE          = 1./len(NUM_WEIGHT_CUMSUM)
+        NUM_START         = RD.random() * NUM_THRE
+        ARR_THRE          = NP.array([ NUM_THRE for n in range(len(NUM_WEIGHT_CUMSUM))])
+        ARR_THRE [0]      = NUM_START
+        ARR_CUM_THRE      = ARR_THRE.cumsum()
+        ARR_WEIGHT2       = NP.insert(NPARR_WEIGHT_OUT, 0, 0)
+        ARR_IND_NUMBERS = NP.array([0 for n in range(NUM_LEN_ARR_IN)])
+        for ind, num in enumerate(ARR_WEIGHT2):
+            for num_in in ARR_CUM_THRE:
+                if ind < NUM_LEN_ARR_IN:
+                    num_chk = ( ARR_WEIGHT2[ind] - num_in ) * (ARR_WEIGHT2[ind+1] - num_in)
+                    if num_chk < 0:
+                        ARR_IND_NUMBERS[ind] += 1
+        ARR_IND_CONFIRM = NP.array([ int(n >= 1) for n in ARR_IND_NUMBERS])
+
+        return ARR_IND_NUMBERS, ARR_IND_CONFIRM
+
+    def ParticleFilterOrigin(ARR_IN):
+        NUM_ENSEMBLE   = len(ARR_IN)
+        NPARR_PROB_OUT = NP.array(ARR_IN )
+        NUM_MAX_PROB      = NPARR_PROB_OUT.max()
+        NUM_MIN_PROB      = NPARR_PROB_OUT.min()
+        NPARR_WEIGHT_OUT  = NPARR_PROB_OUT/NPARR_PROB_OUT.sum()
+
+        cumsum_weight = NPARR_WEIGHT_OUT.cumsum()
+        num_thre      = 1./len(cumsum_weight)
+        num_start     = (RD.random() ) * num_thre
+        arr_thre      = NP.array([num_thre for n in range(len(cumsum_weight))])
+        arr_thre[0]   = num_start
+        arr_cum_thre  = arr_thre.cumsum()
+
+        cumsum_weight2 = NP.insert(cumsum_weight,0,0)
+
+        ARR_IND_NUMBERS = NP.array([0 for n in range(NUM_ENSEMBLE)])
+        for ind, num in enumerate(cumsum_weight2):
+            for num_in in arr_cum_thre:
+                if ind < NUM_ENSEMBLE:
+                    num_chk = ( cumsum_weight2[ind] - num_in ) * (cumsum_weight2[ind+1] - num_in)
+                    if num_chk < 0:
+                        ARR_IND_NUMBERS[ind] += 1
+
+        ARR_IND_CONFIRM = NP.array([ int(n >= 1) for n in ARR_IND_NUMBERS])
+
+        return ARR_IND_NUMBERS, ARR_IND_CONFIRM
+
 
