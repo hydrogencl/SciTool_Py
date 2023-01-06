@@ -811,6 +811,19 @@ class MATH_TOOLS:
         else:
             return (x < 0) * 270 + (x > 0) * 90
 
+    def GrtCirDist(lon1,lat1,lon2,lat2,R=6.37122E6):
+        a2r = lambda x: x/180. * math.pi
+
+        term1      = math.sin(a2r(lat1)) * math.sin(a2r(lat2))
+        term2      = math.cos(a2r(lat1)) * math.cos(a2r(lat2))
+        term3      = math.cos(a2r( lon2 - lon1  ))
+
+        deltaSigma = math.acos( term1 + term2 * term3 ) * 180./math.pi
+        numDist    = deltaSigma/360. * 2 * R * math.pi
+
+        return { "deltaSigma" : deltaSigma, 
+                 "dist"       : numDist     }
+
 class TOOLS:
     """ TOOLS is contains:
         timestamp
@@ -1229,7 +1242,7 @@ class DATA_READER:
     """
     The DATA_READER is based on my old work: gridtrans.py. 
     """
-    def __init__(self, STR_NULL="noData", NUM_NULL=-999.999):
+    def __init__(self, STR_NULL="noData", NUM_NULL=-999.999, STR_endian='b'):
         self.STR_NULL=STR_NULL
         self.NUM_NULL=NUM_NULL
         self.endian   = STR_endian
@@ -1351,9 +1364,9 @@ class DATA_READER:
         return result_arr,result_arr_text
 
     def IbtracsReader(self, strFileIn):
-        fileIn    = open(strFileIn, 'r')
-        arrLines  = fileIn.readlines()
-        numLength = len(arrLines)
+        fileIn       = open(strFileIn, 'r')
+        arrLines     = fileIn.readlines()
+        numTimesteps = len(arrLines)
 
         arrITEM15  = ["BASIN", "TIME",   "NATURE", 
                       "LAT"  ,  "LON", "WMO_WIND", "WMO_PRES",
@@ -1375,15 +1388,17 @@ class DATA_READER:
 
         # Made the output dic
         dicOut    = {}
-        for item in arrITEM16:
-            dicOut[item] = [ "" for n in range(numLength) ]
+        dicOut["TIMESTEPS"] = numTimesteps
 
+        for item in arrITEM16:
+            dicOut[item] = [ "" for n in range(numTimesteps) ]
+
+        arrDATE = []
         # Analysing the dat and into the dictionary output
         for ind,line in enumerate(arrLines):
             arr_tmp = re.split("\s", line)
             numChk  = len(arr_tmp)
             if numChk == 17:
-                print(numChk , arr_tmp)
                 for ind2 in range(16):
                     if arrFMT16[ind2] == "str":
                         dicOut[ arrITEM16[ind2] ][ind] = str(arr_tmp[ind2]) 
@@ -1395,9 +1410,9 @@ class DATA_READER:
                             dicOut[ arrITEM16[ind2] ][ ind ] = 0.0
                         else:
                             dicOut[ arrITEM16[ind2] ][ ind ] = float(arr_tmp[ ind2 ]) 
-
+                    if arrITEM16[ind2] == "DATE":
+                        arrDATE = InputTool.readDateTime(arr_tmp[ind2])[arrITEM16[ind2]]
             elif numChk == 16:
-                print(numChk , arr_tmp)
                 for ind2 in range(15):
                     if arrFMT15[ind2] == "str":
                         dicOut[ arrITEM15[ind2] ][ind] = str(arr_tmp[ind2]) 
@@ -1409,7 +1424,8 @@ class DATA_READER:
                             dicOut[ arrITEM15[ind2] ][ ind ] = -999.999
                         else:
                             dicOut[ arrITEM15[ind2] ][ ind ] = float(arr_tmp[ ind2 ]) 
-                
+                    if arrITEM16[ind2] == "DATE":
+                        dicOut[ "DATE" ][ ind ] = arrDATE             
             else:
                 print("something wrong with the dat file")
         return dicOut  
