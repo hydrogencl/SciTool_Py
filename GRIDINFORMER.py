@@ -824,6 +824,53 @@ class MATH_TOOLS:
         return { "deltaSigma" : deltaSigma, 
                  "dist"       : numDist     }
 
+    def NearestNeighbor(arr_x, arr_y, target_x, target_y):
+        """ This algorithm is used to find the nearest point
+            as 1-NN method
+            input: ARR_X/ARR_Y, the [j,i] array for x/y coordinates
+                   target_x, target_y, the [j,i] array for target [x,y]
+        """
+        lenNY       = len(arr_x)
+        lenNX       = len(arr_x[0])
+        numDist_chk = 9.99E20
+
+        for j in range(lenNY - 1):
+            for i in range(lenNX - 1):
+                chk1    = ( arr_x[j][i] - target_x ) ** 2
+                chk3    = ( arr_y[j][i] - target_y ) ** 2
+                numDist = (chk1 + chk3 ) ** 0.5
+                if min(numDist_chk, numDist) == numDist:
+                    numDist_chk = numDist
+                    found_i = i
+                    found_j = j
+         
+        return found_i, found_j    
+
+    def KNearestNeighbor(arr_x, arr_y, target_x, target_y, numK):
+        """ This algorithm is used to find the nearest point
+            as 1-NN method
+            input: ARR_X/ARR_Y, the [j,i] array for x/y coordinates
+                   target_x, target_y, the [j,i] array for target [x,y]
+                   K is the number of K
+            !!! NOT FINISHED YET !!!
+        """
+        lenNY       = len(arr_x)
+        lenNX       = len(arr_x[0])
+        arrDistchk = [ [ 9.99E20, 0, 0 ] for n in range(numK) ]
+        arrNumChk  = [ 9.99E20 for n in range(numK) ]
+        for j in range(lenNY - 1):
+            for i in range(lenNX - 1):
+                chk1    = ( arr_x[j][i] - target_x ) ** 2
+                chk3    = ( arr_y[j][i] - target_y ) ** 2
+                numDist = (chk1 + chk3 ) ** 0.5
+                for chk in arrDistChk:
+                    if min( chk[0], numDist) == numDist:
+                        arrDistChk = []
+                        found_i = i
+                        found_j = j
+         
+        return arrDistChk 
+
 class TOOLS:
     """ TOOLS is contains:
         timestamp
