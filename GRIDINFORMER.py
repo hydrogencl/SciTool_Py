@@ -44,7 +44,10 @@ class GRIDINFORMATER:
         
         self.ARR_LAT  = ARR_LAT
         self.ARR_LON  = ARR_LON
-       
+
+        self.ARR_RESAMPLE_MAP_PARA = { "EDGE" : { "W" : 0} , "EDGE" : { "E" : 0} ,
+                                       "EDGE" : { "S" : 0} ,"EDGE" : { "N" : 0} }  
+
         if len(ARR_LAT) != 0 and len(ARR_LON) != 0:
             NUM_ARR_NY_T1 = len(ARR_LAT)
             NUM_ARR_NY_T2 = len(ARR_LON)
@@ -595,6 +598,10 @@ class MATH_TOOLS:
         gau_kde: kernel density estimator by Gaussian Function
         standard_dev: The Standard deviation
     """
+    def gaussian(x, sigma, mu):
+        return 1./(sigma * (2*math.pi) **0.5 ) * math.e ** ( -0.5 * (x-mu)**2 / sigma**2  )
+
+
     def GaussJordanEli(arr_in):
         num_ydim = len(arr_in)
         num_xdim = len(arr_in[0])
@@ -914,6 +921,7 @@ class TOOLS:
                     if ARR_END_TIME[NUM_ARR_POS] <= DIC_TIME_LIM[ITEM]["LIMIT"]:  ARR_FERTIG[NUM_ARR_POS] = 1
                 if sum(ARR_FERTIG) == 6: IF_FERTIG = True
         return ARR_END_TIME
+
     def run_time_cal(ARR_TIME_IN, IF_LEAP=False, NUM_MON=0):
         if IF_LEAP == True:
             ARR_DAY_LIM = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
@@ -926,8 +934,6 @@ class TOOLS:
         HOURS   = DAYS * 24 + ARR_TIME_IN[3]
         MINUTES = HOURS * 60 + ARR_TIME_IN[4]
         return {"DAYS": DAYS, "HOURS": HOURS, "MINUTES": MINUTES }
-
-
 
 class MPI_TOOLS:
 
