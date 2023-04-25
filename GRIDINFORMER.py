@@ -992,8 +992,40 @@ class TOOLS:
                 if sum(ARR_FERTIG) == 6: IF_FERTIG = True
         return ARR_END_TIME
 
+    def DataIntersec(arrIn_3D, x = None, y = None, z = None):
+        if x == None and y == None and z == None:
+            print("You forgot to set the plane for intersection")
+        else:
+            dim_x = len(arrIn_3D[0][0])
+            dim_y = len(arrIn_3D[0])
+            dim_z = len(arrIn_3D)
+            if x != None:
+                print("Dealing X plane intersection")
+                arrOut = [ [ 0.0 for i in range(dim_y) ] for j in range(dim_z) ]
+                for k in range(dim_z):
+                    for j in range(dim_y):
+                        arrOut[k][j] = arrIn_3D[k][j][x]
+         
+            elif y != None :
+                print("Dealing Y plane intersection")
+                arrOut = [ [ 0.0 for i in range(dim_x) ] for j in range(dim_z) ]
+                for k in range(dim_z):
+                    for i in range(dim_x):
+                        arrOut[k][i] = arrIn_3D[k][y][i]
+            elif z != None:
+                print("Dealing Z plane intersection")
+                arrOut = [ [ 0.0 for i in range(dim_x) ] for j in range(dim_y) ]
+                for j in range(dim_y):
+                    for i in range(dim_x):
+                        arrOut[j][i] = arrIn_3D[z][j][i]
+            return arrOut, dim_x, dim_y, dim_z
     
-
+    def crop_array_2d(arrIn, x_start, x_end, y_start, y_end):
+        arrOut = [ [ 0.0 for i in range(x_end - x_start) ] for j in range(y_end - y_start) ]
+        for j in range(y_start, y_end):
+            for i in range(x_start, x_end):
+                arrOut[j-y_start][i-x_start] = arrIn[j][i]
+        return arrOut
 
 
 class MPI_TOOLS:
