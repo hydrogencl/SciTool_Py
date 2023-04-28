@@ -846,13 +846,29 @@ class MATH_TOOLS:
          
         return found_i, found_j    
 
-    def KNearestNeighbor(arr_x, arr_y, target_x, target_y, numK):
+    def KNearestNeighbor1D(arr_x, target_v, numK ):
         """ This algorithm is used to find the nearest point
             as 1-NN method
             input: ARR_X/ARR_Y, the [j,i] array for x/y coordinates
                    target_x, target_y, the [j,i] array for target [x,y]
                    K is the number of K
-            !!! NOT FINISHED YET !!!
+            Temperally solution for WRF and XX YY mesh. 
+        """
+        numOut = 0.0
+        numIndOut = 0
+        for ind, v_tmp in enumerate(arr_x):
+            chkTmp = ( v_tmp - target_v) ** 2
+            if min( chkTmp, numOut) == numOut:
+                numIndOut = ind
+        return numIndOut, numOut
+
+    def KNearestNeighbor(arr_x, arr_y, target_x, target_y, numK, ):
+        """ This algorithm is used to find the nearest point
+            as 1-NN method
+            input: ARR_X/ARR_Y, the [j,i] array for x/y coordinates
+                   target_x, target_y, the [j,i] array for target [x,y]
+                   K is the number of K
+            Temperally solution for WRF and XX YY mesh. 
         """
         lenNY       = len(arr_x)
         lenNX       = len(arr_x[0])
@@ -868,7 +884,6 @@ class MATH_TOOLS:
                         arrDistChk = []
                         found_i = i
                         found_j = j
-         
         return arrDistChk 
 
 class TOOLS:
