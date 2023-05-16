@@ -846,7 +846,7 @@ class MATH_TOOLS:
          
         return found_i, found_j    
 
-    def KNearestNeighbor1D(arr_x, target_v, numK ):
+    def NearestNeighbor1D(arr_x, target_v ):
         """ This algorithm is used to find the nearest point
             as 1-NN method
             input: ARR_X/ARR_Y, the [j,i] array for x/y coordinates
@@ -854,12 +854,13 @@ class MATH_TOOLS:
                    K is the number of K
             Temperally solution for WRF and XX YY mesh. 
         """
-        numOut = 0.0
+        numOut = 9E12
         numIndOut = 0
         for ind, v_tmp in enumerate(arr_x):
-            chkTmp = ( v_tmp - target_v) ** 2
-            if min( chkTmp, numOut) == numOut:
-                numIndOut = ind
+            chkTmp = (( v_tmp - target_v) ** 2 ) ** 0.5
+            if min( chkTmp, numOut) == chkTmp:
+                numIndOut  = ind
+                numOut     = chkTmp
         return numIndOut, numOut
 
     def KNearestNeighbor(arr_x, arr_y, target_x, target_y, numK, ):
@@ -1242,7 +1243,7 @@ class NETCDF4_HELPER:
         FILE_OUT.close() 
         FILE_IN.close()
 
-class WRF_HELPER:
+class WRF_TOOLS:
     STR_DIR_ROOT  = "./"
     NUM_TIME_INIT = 0
     NUM_SHIFT     = 0.001
@@ -1345,6 +1346,14 @@ class WRF_HELPER:
             if IF_PB: TOOLS.progress_bar(I/float(NUM_LEN_IN))
         #self.ARR_TIME_PROFILE = ARR_TIME_PROFILE
         return ARR_TIME_PROFILE
+
+    def wrf_reading_time(strIn):
+        strDate, strTime = re.split("_", strIn)
+        arrDate = re.split("-", strDate)
+        arrTime = re.split(":", strTime)
+        return [  int(arrDate[0]), int(arrDate[1]), int(arrDate[2]),\
+                int(arrTime[0]), int(arrTime[1]), int(arrTime[2]),]
+
 
 class DATA_READER:
     """
