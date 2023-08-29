@@ -929,8 +929,10 @@ class TOOLS:
         return ARR_HOY_IN[ARR_TIME[1]-1] + (ARR_TIME[2]-1)*24 + ARR_TIME[3]
 
     def timestamp(STR_IN=""):
-        print("{0:04d}-{1:02d}-{2:02d}_{3:02d}:{4:02d}:{5:02d} {6:s}".format(time.gmtime().tm_year, time.gmtime().tm_mon, time.gmtime().tm_mday,\
-        time.gmtime().tm_hour, time.gmtime().tm_min, time.gmtime().tm_sec, STR_IN) )
+        str_out = "{0:04d}-{1:02d}-{2:02d}_{3:02d}:{4:02d}:{5:02d} {6:s}".format(time.gmtime().tm_year, time.gmtime().tm_mon, time.gmtime().tm_mday,\
+        time.gmtime().tm_hour, time.gmtime().tm_min, time.gmtime().tm_sec, STR_IN) 
+        print(str_out)
+        return str_out
 
     def fix_ind(IND_IN, IND_J, IND_I, ARR_XRANGE=[], ARR_YRANGE=[], NX=0, NY=0):
         NUM_DY   = ARR_YRANGE[0]
