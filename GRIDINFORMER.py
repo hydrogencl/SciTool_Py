@@ -969,22 +969,26 @@ class TOOLS:
         else:
             print("Wrong dimenstion for in put ARR_INDEX ({0:d}) and ARR_INDEX_MAX ({1:d})".format(len(ARR_INDEX), len(ARR_INDEX_MAX)))
 
-    def run_time_cal(ARR_TIME_IN, ARR_BASE_IN= [0,0,0,0,0,0 ], IF_LEAP=False):
+    def run_time_cal(ARR_TIME_IN, ARR_BASE_IN= [0,0,0,0,0,0 ], IF_LEAP=False, IF_UNI_MON=False):
         if IF_LEAP == True:
             ARR_DAY_LIM = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
         else:
             ARR_DAY_LIM = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
-        if NUM_MON == 0:
-            DIFF_DAYS    = (ARR_TIME_IN[0] - ARR_BASE_IN[0] ) * sum(ARR_DAY_LIM) 
-                         + (ARR_DAY_LIM[ ARR_TIME_IN[1] - ARR_BASE_IN[1] ] 
+        if IF_UNI_MON:
+            DIFF_DAYS    = (ARR_TIME_IN[0] - ARR_BASE_IN[0] ) * 30 * 12 \
+                         + (ARR_TIME_IN[1] - ARR_BASE_IN[1] ) * 30      \
                          + (ARR_TIME_IN[2] - ARR_BASE_IN[2] )
-        DIFF_HOURS   = ARR_TIME_IN[3]
-        DIFF_MINUTES = ARR_TIME_IN[4]
-        DIFF_SECONDS = ARR_TIME_IN[5]
-        DAYS         = DIFF_DAYS + DIFF_HOUR/24. + DIFF_MINUTES/(60.*24.) + DIFF_SECOND/(60.*60.*24.)
-        HOURS        = DIFF_DAYS * 24 + DIFF_HOURS + DIFF_NINUTES/60. + DIFF_SECOND/(60.*60.)
-        MINUTES      = DIFF_DAYS * 24 * 60 + DIFF_HOURS * 60 + DIFF_MINUTES + DIFF_SECOND/(60.)
-        SECONDS      = DIFF_DAYS * 24 * 3600 + DIFF_HOURS * 3600 + DIFF_MINUTES * 60 + DIFF_SECOND
+        else:
+            DIFF_DAYS    = (ARR_TIME_IN[0] - ARR_BASE_IN[0] ) * sum(ARR_DAY_LIM)            \
+                         + (ARR_DAY_LIM[ ARR_TIME_IN[1]] - ARR_DAY_LIM [ ARR_BASE_IN[1] ] ) \
+                         + (ARR_TIME_IN[2] - ARR_BASE_IN[2] )
+        DIFF_HOURS   = ARR_TIME_IN[3] - ARR_BASE_IN[3]
+        DIFF_MINUTES = ARR_TIME_IN[4] - ARR_BASE_IN[4]
+        DIFF_SECONDS = ARR_TIME_IN[5] - ARR_BASE_IN[5]
+        DAYS         = DIFF_DAYS + DIFF_HOURS/24. + DIFF_MINUTES/(60.*24.) + DIFF_SECONDS/(60.*60.*24.)
+        HOURS        = DIFF_DAYS * 24 + DIFF_HOURS + DIFF_MINUTES/60. + DIFF_SECONDS/(60.*60.)
+        MINUTES      = DIFF_DAYS * 24 * 60 + DIFF_HOURS * 60 + DIFF_MINUTES + DIFF_SECONDS/(60.)
+        SECONDS      = DIFF_DAYS * 24 * 3600 + DIFF_HOURS * 3600 + DIFF_MINUTES * 60 + DIFF_SECONDS
         return {"DAYS": DAYS, "HOURS": HOURS, "MINUTES": MINUTES, "SECONDS": SECONDS }
 
 
