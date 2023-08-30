@@ -969,7 +969,7 @@ class TOOLS:
         else:
             print("Wrong dimenstion for in put ARR_INDEX ({0:d}) and ARR_INDEX_MAX ({1:d})".format(len(ARR_INDEX), len(ARR_INDEX_MAX)))
 
-    def run_time_cal(ARR_TIME_IN, ARR_BASE_IN= [0,0,0,0,0,0 ], IF_LEAP=False)
+    def run_time_cal(ARR_TIME_IN, ARR_BASE_IN= [0,0,0,0,0,0 ], IF_LEAP=False):
         if IF_LEAP == True:
             ARR_DAY_LIM = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
         else:
