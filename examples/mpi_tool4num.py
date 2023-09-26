@@ -5,8 +5,8 @@
 ###
 
 import math, sys,os, time, re
-import netCDF4 as NC
 from mpi4py import MPI
+import numpy as NP
 from GRIDINFORMER import MPI_TOOLS as MT
 
 IF_PARALLEL = True
@@ -48,15 +48,20 @@ VAR_IN2D = [[ 0 for x in range(numNX)    ] for y in range(numNY) ]
 for j in range(NUM_NY_START, NUM_NY_END):
     for i in range(NUM_NX_START, NUM_NX_END):
         VAR_IN2D[j][i] = NUM_MPI_RANK + 1
-print(VAR_IN2D)
+
+time.sleep(z*0.1)
+MPI_SET.MPI_MESSAGE("Printing out:  Rank (start from 1)    ")
+print(NP.array(VAR_IN2D))
 MPI_SET.MPI_MESSAGE("End of MAP2D     ")
 
 VAR_IN3D = [[[ 0 for x in range(numNX)    ] for y in range(numNY) ] for t in range(numNT)   ] 
 for j in range(NUM_NY_START, NUM_NY_END):
     for i in range(NUM_NX_START, NUM_NX_END):
         for z in range(numNT):
-            VAR_IN3D[z][j][i] = NUM_MPI_RANK + 1 
+            VAR_IN3D[z][j][i] = NUM_MPI_RANK + 1 + z 
 
-print(VAR_IN3D)
+time.sleep(z*0.1)
+MPI_SET.MPI_MESSAGE("Printing out: Z + Rank + 1    ")
+print(NP.array(VAR_IN3D))
 MPI_SET.MPI_MESSAGE("End of MAP3D     ")
 
