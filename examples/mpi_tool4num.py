@@ -49,7 +49,7 @@ for j in range(NUM_NY_START, NUM_NY_END):
     for i in range(NUM_NX_START, NUM_NX_END):
         VAR_IN2D[j][i] = NUM_MPI_RANK + 1
 
-time.sleep(z*0.1)
+time.sleep(NUM_MPI_RANK*0.1)
 MPI_SET.MPI_MESSAGE("Printing out:  Rank (start from 1)    ")
 print(NP.array(VAR_IN2D))
 MPI_SET.MPI_MESSAGE("End of MAP2D     ")
@@ -60,7 +60,7 @@ for j in range(NUM_NY_START, NUM_NY_END):
         for z in range(numNT):
             VAR_IN3D[z][j][i] = NUM_MPI_RANK + 1 + z 
 
-time.sleep(z*0.1)
+time.sleep(NUM_MPI_RANK*0.1)
 MPI_SET.MPI_MESSAGE("Printing out: Z + Rank + 1    ")
 print(NP.array(VAR_IN3D))
 MPI_SET.MPI_MESSAGE("End of MAP3D     ")
