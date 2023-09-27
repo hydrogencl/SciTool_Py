@@ -45,17 +45,22 @@ for j in range(NUM_NY_START, NUM_NY_END):
 
 time.sleep(MPI_SET.NUM_MPI_RANK*0.1)
 MPI_SET.MPI_MESSAGE("Printing out:  Rank ( +1 to identify the first rank (index=0) )    ")
-print(NP.array(VAR_IN2D))
 MPI_SET.MPI_MESSAGE("End of MAP2D     ")
 
-#VAR_IN3D = [[[ 0 for x in range(numNX)    ] for y in range(numNY) ] for t in range(numNT)   ] 
-#for j in range(NUM_NY_START, NUM_NY_END):
-#    for i in range(NUM_NX_START, NUM_NX_END):
-#        for z in range(numNT):
-#            VAR_IN3D[z][j][i] = MPI_SET.NUM_MPI_RANK + 1 + z 
+# Gathering the calculated 2D array(s)
+ARR_OUT = MPI_SET.GATHER_ARR(VAR_IN2D)
+print(NP.array(ARR_OUT))
 
-#time.sleep(MPI_SET.NUM_MPI_RANK*0.1)
-#MPI_SET.MPI_MESSAGE("Printing out: Z + Rank + 1    ")
-#print(NP.array(VAR_IN3D))
-#MPI_SET.MPI_MESSAGE("End of MAP3D     ")
+VAR_IN3D = [[[ 0 for t in range(numNT)    ] for x in range(numNX) ] for y in range(numNY)   ] 
+for j in range(NUM_NY_START, NUM_NY_END):
+    for i in range(NUM_NX_START, NUM_NX_END):
+        for z in range(numNT):
+            VAR_IN3D[j][i][z] = MPI_SET.NUM_MPI_RANK + 1 
+
+# Gathering the calculated 3D array(s)
+ARR_OUT = MPI_SET.GATHER_ARR(VAR_IN3D)
+print(NP.array(ARR_OUT))
+
+
+
 

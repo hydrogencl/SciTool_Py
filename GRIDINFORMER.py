@@ -1147,21 +1147,23 @@ class MPI_TOOLS:
                     ARR_CPU_MAP[jj][ii] = ARR_RANK_DESIGN[RANK]["INDEX_IN"]  
         return MAP_CPU
 
-    def GATHER_ARR_2D(self, ARR_IN, ARR_RANK_DESIGN=[]):
+    def GATHER_ARR(self, ARR_IN, NUM_GATHERING_RANK=0, ARR_RANK_DESIGN=[]):
         if ARR_RANK_DESIGN == []:
             ARR_RANK_DESIGN = self.ARR_RANK_DESIGN
-
-         
-        for N in range(1, self.NUM_SIZE):
-            I_STA = ARR_RANK_DESIGN[N]["NX_START"]
-            I_END = ARR_RANK_DESIGN[N]["NX_END"  ]
-            J_STA = ARR_RANK_DESIGN[N]["NY_START"]
-            J_END = ARR_RANK_DESIGN[N]["NY_END"  ]
-            for J in range(J_STA, J_END ):
-                for I in range(I_STA, I_END ):
-                    ARR_IN[J][I] = ARR_IN_GATHER[N][J][I]
-
-        return ARR_IN
+        if self.NUM_MPI_RANK == NUM_GATHERING_RANK:
+            ARR_TMP = [0.0 for size in range(self.NUM_MPI_SIZE)]
+        else: 
+            ARR_TMP = None
+        ARR_TMP = self.COMM.gather(ARR_IN, root=NUM_GATHERING_RANK)
+        if self.NUM_MPI_RANK == NUM_GATHERING_RANK:
+            ARR_OUT = [[0.0 for i in range(self.NUM_NX_SIZE)] for j in range(self.NUM_NY_SIZE)  ]
+            for ind, rank in enumerate(ARR_RANK_DESIGN):
+                for j in range(rank["NY_START"], rank["NY_END"]):
+                    for i in range(rank["NX_START"], rank["NX_END"]):
+                        ARR_OUT[j][i] = ARR_TMP[ind][j][i]
+            return ARR_OUT
+        else:
+            return 0
 
     def MPI_MESSAGE(self, STR_TEXT=""):
         TIME_NOW = time.gmtime()
