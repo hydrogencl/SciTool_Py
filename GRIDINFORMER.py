@@ -1070,22 +1070,38 @@ class TOOLS:
 
 
 class MPI_TOOLS:
-
-    def __init__(self, MPI_SIZE=1, MPI_RANK=0,\
-                 NUM_NX_END=1, NUM_NY_END=1, NUM_NX_START=0, NUM_NY_START=0, NUM_NX_CORES=1 ,\
+    def __init__(self, \
+                 NUM_NX_END=1, NUM_NY_END=1, NUM_NX_START=0, NUM_NY_START=0, NUM_NX_CORES=0 ,\
                  NUM_NX_TOTAL=1, NUM_NY_TOTAL=1 ):
 
         """ END number follow the python philisophy: End number is not included in the list """
+        try:
+            from mpi4py import MPI
+        except:
+            print("Can not find the mpi4py")
+            sys.exit()
  
-        self.NUM_SIZE     = MPI_SIZE
-        self.NUM_RANK     = MPI_RANK
+        self.COMM         = MPI.COMM_WORLD
+        self.NUM_MPI_SIZE = self.COMM.Get_size()
+        self.NUM_MPI_RANK = self.COMM.Get_rank()
+
         self.NUM_NX_START = NUM_NX_START
         self.NUM_NY_START = NUM_NY_START
         self.NUM_NX_SIZE  = NUM_NX_END - NUM_NX_START
         self.NUM_NY_SIZE  = NUM_NY_END - NUM_NY_START
-        self.NUM_NX_CORES = NUM_NX_CORES
-        self.NUM_NY_CORES = max(1, int(self.NUM_SIZE / NUM_NX_CORES))
-        self.ARR_RANK_DESIGN = [ {} for n in range(self.NUM_SIZE)]
+        if NUM_NX_CORES == 0:
+            self.NUM_NX_CORES = self.NUM_MPI_SIZE
+        else:
+            self.NUM_NX_CORES = int(NUM_NX_CORES)
+        self.NUM_NY_CORES = max(1, int(self.NUM_MPI_SIZE / self.NUM_NX_CORES))
+        self.ARR_RANK_DESIGN = [ {} for n in range(self.NUM_MPI_SIZE)]
+
+    def UPDATE_NX_CORES(self, NUM_NX_CORES):
+        self.NUM_NX_CORES = int(NUM_NX_CORES)
+        self.NUM_NY_CORES = max(1, int(self.NUM_MPI_SIZE / self.NUM_NX_CORES))
+
+    def UPDATE_NY_CORES(self):
+        self.NUM_NY_CORES = max(1, int(self.NUM_MPI_SIZE / self.NUM_NX_CORES))
 
     def CPU_GEOMETRY_2D(self):
 
@@ -1099,7 +1115,7 @@ class MPI_TOOLS:
         NUM_NX_DIFF_P1 = NUM_NX_DIFF + 1
 
         IND_RANK = 0
-        ARR_RANK_DESIGN = [ 0 for n in range(self.NUM_SIZE)]
+        ARR_RANK_DESIGN = [ 0 for n in range(self.NUM_MPI_SIZE)]
         for ny in range(self.NUM_NY_CORES):
             for nx in range(self.NUM_NX_CORES):
                 NUM_RANK = ny * self.NUM_NX_CORES + nx
@@ -1131,9 +1147,11 @@ class MPI_TOOLS:
                     ARR_CPU_MAP[jj][ii] = ARR_RANK_DESIGN[RANK]["INDEX_IN"]  
         return MAP_CPU
 
-    def GATHER_ARR_2D(self, ARR_IN, ARR_IN_GATHER, ARR_RANK_DESIGN=[]):
+    def GATHER_ARR_2D(self, ARR_IN, ARR_RANK_DESIGN=[]):
         if ARR_RANK_DESIGN == []:
             ARR_RANK_DESIGN = self.ARR_RANK_DESIGN
+
+         
         for N in range(1, self.NUM_SIZE):
             I_STA = ARR_RANK_DESIGN[N]["NX_START"]
             I_END = ARR_RANK_DESIGN[N]["NX_END"  ]
@@ -1148,7 +1166,7 @@ class MPI_TOOLS:
     def MPI_MESSAGE(self, STR_TEXT=""):
         TIME_NOW = time.gmtime()
         print("MPI RANK: {0:5d} @ {1:02d}:{2:02d}:{3:02d} # {4:s}"\
-              .format(self.NUM_RANK, TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec, STR_TEXT ))
+              .format(self.NUM_MPI_RANK, TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec, STR_TEXT ))
     
 class GEO_TOOLS:
     def __init__(self):
