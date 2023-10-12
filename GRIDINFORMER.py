@@ -705,9 +705,6 @@ class MATH_TOOLS:
             CD = oo_sum / po_sum
         return RRMSE,EF,CD,RMSE, num_arr
 
-
-
-
     def cal_kappa(ARR_IN, NUM_n=0, NUM_N=0, NUM_k=0):
         """ Fleiss' kappa
             Mustt input with ARR_IN in the following format:
@@ -886,6 +883,34 @@ class MATH_TOOLS:
                         found_i = i
                         found_j = j
         return arrDistChk 
+
+    def Find_Xest(arrIn, dim_x, dim_y, num_crop=20, numMax = 9E20):
+        numMinOut    =  numMax
+        numMaxOut    = -1 * numMax
+        Min_i       = 0
+        Min_j       = 0
+        Max_i       = 0
+        Max_j       = 0
+        MinV        = 0
+        MaxV        = 0
+        for j in range(num_crop, dim_y-num_crop):
+            for i in range(num_crop, dim_x-num_crop):
+                numIn      =  arrIn[j][i]
+                numMinOut =  min( numMinOut, numIn )
+                numMaxOut =  max( numMaxOut, numIn )
+                if numIn == numMinOut:
+                    MinV   = numIn
+                    Min_i = i
+                    Min_j = j
+                if numIn == numMaxOut:
+                    MaxV   = numIn
+                    Max_i = i
+                    Max_j = j
+        dicOut = {"MinV": MinV, "MinJ": Min_j, "MinI": Min_i,\
+                  "MaxV": MaxV, "MaxJ": Max_j, "MaxI": Max_i}
+        return dicOut
+
+
 
 class TOOLS:
     """ TOOLS is contains:
