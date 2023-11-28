@@ -281,62 +281,94 @@ class GRIDINFORMATER:
                         NCDF4_DATA.groups[V1].variables[V2][n] = map_in[n]
         NCDF4_DATA.close()
 
-
-
-    def export_grid(self, ARR_GRID_IN, STR_DIR, STR_FILENAME, ARR_VAR_STR=[],\
-                ARR_VAR_ITEM=["VALUE", "MEAN", "MEDIAN", "MIN", "MAX", "P95", "P75", "P25", "P05"],\
-                NUM_NX=0, NUM_NY=0, NUM_NT=0, STR_TYPE="netCDF4", IF_PB=False ):
+    def export_grid(ARR_GRID_IN, STR_DIR, STR_FILENAME, ARR_VAR_STR=[], STR_GRID_NAME="",\
+                    STR_TYPE="netCDF4", IF_PB=False ):
         TIME_NOW = time.gmtime()
-        STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday) 
+        STR_DATE_NOW = "{0:04d}-{1:02d}-{2:02d}".format(TIME_NOW.tm_year, TIME_NOW.tm_mon, TIME_NOW.tm_mday)
         STR_TIME_NOW = "{0:04d}:{1:02d}:{2:02d}".format(TIME_NOW.tm_hour, TIME_NOW.tm_min, TIME_NOW.tm_sec)
-        
-        if NUM_NX==0: NUM_NX = self.NUM_NX
-        if NUM_NY==0: NUM_NY = self.NUM_NY
-        if NUM_NT==0: NUM_NT = self.NUM_NT
-        
+        if STR_GRID_NAME == "":
+            STR_GRID_NAME = [ k for k,v in locals().items() if v == ARR_GRID_IN][0]
         if STR_TYPE == "netCDF4":
-            NCDF4_DATA = NC.Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILENAME), 'w', format="NETCDF4")
+            NCDF4_DATA = Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILENAME), 'a', format="NETCDF4")
             # CREATE ATTRIBUTEs:
             NCDF4_DATA.description = \
-            "The grid information in netCDF4"
+            "The grid information in netCDF4, the grid information will be based on the input grids. "
             NCDF4_DATA.history = "Create on {0:s} at {1:s}".format(STR_DATE_NOW, STR_TIME_NOW)
-            
-            # CREATE DIMENSIONs:
-            NCDF4_DATA.createDimension("Y"     , NUM_NY )
-            NCDF4_DATA.createDimension("X"     , NUM_NX )
-            NCDF4_DATA.createDimension("Time"  , NUM_NT )
-            NCDF4_DATA.createDimension("Values", None   )
-            
-            # CREATE BASIC VARIABLES:
-            INDEX          = NCDF4_DATA.createVariable("INDEX",          "i4", ("Y", "X"))
-            INDEX_J        = NCDF4_DATA.createVariable("INDEX_J",        "i4", ("Y", "X"))
-            INDEX_I        = NCDF4_DATA.createVariable("INDEX_I",        "i4", ("Y", "X"))
-            CENTER_LON     = NCDF4_DATA.createVariable("CENTER_LON",     "f8", ("Y", "X"))
-            CENTER_LAT     = NCDF4_DATA.createVariable("CENTER_LAT",     "f8", ("Y", "X"))
-            
+    
+            # CREATE THE DIMENSIONS:
+    
+            #numGrids = len(ARR_GRID_IN)
+            try:
+                NCDF4_DATA.createDimension("index", None    )
+            except:
+                print("Dimension existed")
             # CREATE GROUP for Variables: 
-            for VAR in ARR_VAR_STR:
-                NCDF4_DATA.createGroup(VAR)
-                for ITEM in ARR_VAR_ITEM:
-                    if ITEM == "VALUE" :
-                        NCDF4_DATA.groups[VAR].createVariable(ITEM, "f8", ("Time", "Y", "X", "Values"))
-                    else:
-                        NCDF4_DATA.groups[VAR].createVariable(ITEM, "f8", ("Time", "Y", "X"))
+            try:
+                group = NCDF4_DATA.createGroup(STR_GRID_NAME)
+            except:
+                print("Group existed, not creating the group: {0:s}".format(STR_GRID_NAME))
+                group = NCDF4_DATA.group[STR_GRID_NAME]
+    
+            # CREATE BASIC VARIABLES:
+            arrVarOut = []
+            arrVars   = [ k for k in ARR_GRID_IN[0].keys() ]
+            for key in arrVars:
+                try:
+                    arrSubVar = ARR_GRID_IN[0][key].keys()
+                    for subkey in arrSubVar:
+                        arrVarOut.append("{0:s}_sub_{1:s}".format(key,subkey))
+                except:
+                    arrVarOut.append(key)
+    
+            try:
+                for key in arrVarOut:
+                    group.createVariable( key, "f8", ("index"))
+            except:
+                print("Variables existed")
+    
             # WRITE IN VARIABLE
+            NUM_LEN_GRID = len(ARR_GRID_IN)
             for IND, OBJ in enumerate(ARR_GRID_IN):
-                j = OBJ["INDEX_J"]
-                i = OBJ["INDEX_I"]
-                INDEX      [j,i]      = OBJ["INDEX"]
-                INDEX_J    [j,i]      = OBJ["INDEX_J"]
-                INDEX_I    [j,i]      = OBJ["INDEX_I"]
-                CENTER_LON [j,i]      = OBJ["CENTER"]["LON"]
-                CENTER_LAT [j,i]      = OBJ["CENTER"]["LAT"]
-                for VAR in ARR_VAR_STR:
-                    for ITEM in ARR_VAR_ITEM:
-                        for T in range(NUM_NT):
-                            NCDF4_DATA.groups[VAR].variables[ITEM][T,j,i] = OBJ[VAR][T][ITEM] 
-                if IF_PB: TOOLS.progress_bar((IND+1)/(NUM_NX*NUM_NY), STR_DES="WRITING PROGRESS")
-        NCDF4_DATA.close()
+                for key in arrVarOut:
+                    if len(re.findall("_sub_", key)) == 0:
+                        v_in  = group.variables[key]
+                        v_in[IND] = OBJ[key]
+                    else:
+                        v_in  = group.variables[key]
+                        key1, key2 = re.split("_sub_", key)
+                        v_in[IND] = OBJ[key1][key2]
+                        #print(key1, key2, IND, OBJ[key1][key2] )
+    
+                if IF_PB: TOOLS.progress_bar(IND/(NUM_LEN_GRID-1), STR_DES="WRITING PROGRESS")
+            NCDF4_DATA.close()
+
+    def import_grid(STR_DIR, STR_FILENAME, STR_GRID_NAME="",\
+                STR_TYPE="netCDF4", IF_PB=False ):
+        NC_IN = Dataset("{0:s}/{1:s}".format(STR_DIR, STR_FILENAME), 'r', format="NETCDF4")
+        group = NC_IN.groups[STR_GRID_NAME]
+        ARR_GRIDS = []
+        numGrid_size = 0
+        for ind in range(NC_IN.dimensions["index"].size):
+            chk   = group.variables["INDEX"][ind].mask
+            value = int(group.variables["INDEX"][ind])
+            if chk:
+                break
+            else:
+                numGrid_size+=1
+                Obj_In = {"INDEX" : value   }
+    
+                for Key in group.variables:
+                    v_in = group.variables[Key]
+                    if len(re.split("_sub_",Key)) == 2:
+                        key1, key2 = re.split("_sub_",Key)
+                        Obj_In[key1] = {key2 : float(v_in[value])}                            
+                    elif len(re.split("_sub_",Key)) == 0:
+                        Obj_In[Key] = float(v_in[value])
+                
+                ARR_GRIDS.append(Obj_In)
+            TOOLS.progress_bar(ind/NC_IN.dimensions["index"].size)
+        return ARR_GRIDS
+
 
     def export_reference_map(self, STR_DIR, STR_FILENAME, STR_TYPE="netCDF4", IF_PB=False, IF_PARALLEL=False ):
         TIME_NOW = time.gmtime()
@@ -759,7 +791,7 @@ class MATH_TOOLS:
         NUM_SUM2 = 0.0
         for N in ARR_IN:
             if not math.isnan(N):
-                NUM_SUM2 = (N-NUM_MEAN)**2
+                NUM_SUM2 += (N-NUM_MEAN)**2
             else:
                 NUM_N += -1
         return (NUM_SUM2 / (NUM_N-1)) ** 0.5
@@ -779,11 +811,12 @@ class MATH_TOOLS:
                 ARR_OUT[j][i] = ARR_IN[j][i][STR_IN]
         return ARR_OUT
 
-    def reshape2d(ARR_IN):
+    def reshape2d(ARR_IN, NUM_NULL = 0.0):
         ARR_OUT=[]
         for A in ARR_IN:
             for B in A:
-                ARR_OUT.append(B)
+                if not math.isnan(B):
+                    ARR_OUT.append(B)
         return ARR_OUT
 
     def NormalVector( V1, V2):
