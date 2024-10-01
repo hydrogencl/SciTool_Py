@@ -1527,7 +1527,7 @@ class DATA_READER:
                         wtf.write(struct.pack('{0:s}d'.format(sym_end),input_arr[i][j][k]))
         wtf.close()
 
-    def READCSV(self, sourcefile):
+    def READCSV(self, sourcefile, if_text):
         opf    = self.tryopen(sourcefile,'r')
         opfchk = self.tryopen(sourcefile,'r')
         print("reading source file {0:s}".format(sourcefile))
@@ -1566,7 +1566,11 @@ class DATA_READER:
                         if chk_val == self.STR_NULL: 
                             result_arr[j-num_pass][i] = self.NUM_NULL
                         else:
-                            result_arr[j-num_pass][i] = float(chk_val)
+                            if if_text:
+                                result_arr[j-num_pass][i] = chk_val
+                            else:
+                                result_arr[j-num_pass][i] = float(chk_val)
+
         return result_arr,result_arr_text
 
     def IbtracsReader(self, strFileIn):
