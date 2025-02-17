@@ -854,7 +854,30 @@ class MATH_TOOLS:
         return { "deltaSigma" : deltaSigma, 
                  "dist"       : numDist     }
 
-    def NearestNeighbor(arr_x, arr_y, target_x, target_y):
+    def NearestNeighbor_limited(arr_x, arr_y, target_x, target_y, 
+                                j_sta, j_end, i_sta, i_end,
+                                threshold=9.99E20):
+        """ This algorithm is used to find the nearest point
+            as 1-NN method
+            input: ARR_X/ARR_Y, the [j,i] array for x/y coordinates
+                   target_x, target_y, the [j,i] array for target [x,y]
+        """
+        numDist_chk = 9.99E20
+        found_i = float("NaN")
+        found_j = float("NaN")
+        for j in range(j_sta, j_end):
+            for i in range(i_sta, i_end):
+                chk1    = ( arr_x[j][i] - target_x ) ** 2
+                chk3    = ( arr_y[j][i] - target_y ) ** 2
+                numDist = (chk1 + chk3 ) ** 0.5
+                if min(numDist_chk, numDist) == numDist and numDist < threshold:
+                    numDist_chk = numDist
+                    found_i = i
+                    found_j = j
+         
+        return found_i, found_j, numDist 
+
+    def NearestNeighbor(arr_x, arr_y, target_x, target_y, threshold=9.99E20):
         """ This algorithm is used to find the nearest point
             as 1-NN method
             input: ARR_X/ARR_Y, the [j,i] array for x/y coordinates
@@ -869,7 +892,7 @@ class MATH_TOOLS:
                 chk1    = ( arr_x[j][i] - target_x ) ** 2
                 chk3    = ( arr_y[j][i] - target_y ) ** 2
                 numDist = (chk1 + chk3 ) ** 0.5
-                if min(numDist_chk, numDist) == numDist:
+                if min(numDist_chk, numDist) == numDist and numDist < threshold:
                     numDist_chk = numDist
                     found_i = i
                     found_j = j
@@ -1222,6 +1245,17 @@ class MPI_TOOLS:
             return ARR_OUT
         else:
             return 0
+
+    def BCAST_DATA(self, ARR_IN, NUM_BCAST_ROOT=0, ARR_RANK_DESIGN=[]):
+        if ARR_RANK_DESIGN == []:
+            ARR_RANK_DESIGN = self.ARR_RANK_DESIGN
+        if self.NUM_MPI_RANK == NUM_BCAST_ROOT:
+            ARR_TMP = ARR_IN
+        else: 
+            ARR_TMP = None
+        ARR_TMP = self.COMM.bcast ( ARR_TMP, root=NUM_BCAST_ROOT  )    
+
+        return ARR_TMP    
 
     def MPI_MESSAGE(self, STR_TEXT=""):
         TIME_NOW = time.gmtime()
